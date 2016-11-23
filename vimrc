@@ -20,12 +20,28 @@ let mapleader = ","
 "{{{
 python << endpython
 import vim
+import os
+import re
 
 # This contains a list of functions that each check if the file being edited is a particular type
 # If it is a certain type, then the unit tests will be run, and the function returns true, other wise
 # the function returns false. When the keyboard shortcut is triggered, a function itterates over this list
 # looking for the first function that returns true
 RunUnitTestListeners = []
+
+# Similarly, this is a list of functions that will add includes for various languages
+addIncludeListeners = []
+
+# This is the list of functions that will comment the current line in various languages
+commentLineListeners = []
+
+# This is the list of functions that take the current line to be a
+# variable, and replace it with a line outputting the contents of the
+# variable to stdout or a log file
+createDebugLineListeners = []
+
+# Similar to createDebugLineListeners, except these just print messages, not variables
+createPrintLineListeners = []
 
 def setCursor( line, col ):
     vim.current.window.cursor = ( line + 1, col )
@@ -48,6 +64,9 @@ def getCol():
 def getLine(i):
     return vim.current.buffer[i]
 
+def getLines(i,j):
+    return vim.current.buffer[i:j]
+
 def getFilename():
     return vim.current.buffer.name
 
@@ -57,8 +76,12 @@ def getChar(i,j):
 def insertLine ( i, newLine ):
     vim.current.buffer.append(newLine, i)
 
-def setLine ( i, newLine ):
+def setLine(i, newLine):
     vim.current.buffer[i] = newLine
+
+def setLines(i, j, newLines):
+    for lineNumber in range(i,j):
+        vim.current.buffer[lineNumber] = newLines[lineNumber - i]
 
 def deleteLine ( i ):
     vim.current.buffer[i] = None
@@ -79,6 +102,22 @@ def findLine(lineContent):
     for (i, l) in enumerate(vim.current.buffer):
         if l == lineContent:
             return i
+
+def findFirstLineStartingWith(beginnings):
+    for (i, l) in enumerate(vim.current.buffer):
+        for beginning in beginnings:
+            if l.startswith(beginning):
+                return i
+    return 0
+
+def linesExist(lines):
+    for bufferLineNumber in range(0, len(vim.current.buffer) - len(lines) + 1):
+        for lineNumber, line in enumerate(lines):
+            if line != vim.current.buffer[bufferLineNumber + lineNumber]:
+                break
+        else:
+            return True
+    return False
 
 def writeStringToFile ( filename, output ):
     with open(filename, "w") as file:
@@ -129,26 +168,44 @@ nnoremap <leader>q :q<CR>
 nnoremap <leader>? :tabm +1<CR>
 nnoremap <leader><LT> :tabm -1<CR>
 
+"Window related mappings
+nnoremap <leader>w <C-W>
+
 "Make d, x delete and forget, make s cut
-vnoremap s d
+vnoremap s "+d
 vnoremap d "_d
 vnoremap x "_x
 
-nnoremap ss dd
-nnoremap s d
+nnoremap s "+d
+nnoremap ss "+dd
 nnoremap d "_d
 nnoremap x "_x
+
+"Use the system clipboard when copying and pasting
+nnoremap y "+y
+vnoremap y "+y
+nnoremap yy "+yy
+nnoremap p "+p
+vnoremap p "+p
+nnoremap P "+P
+vnoremap P "+P
 
 "Shortcuts for opening and loading vimrc
 nnoremap <leader>ve :tabe ~/.vimrc<CR>
 nnoremap <leader>vs :source ~/.vimrc<CR>
 
 "execute the current file as a script
-nnoremap <leader>r :w<CR>:!./%:t<CR>
+nnoremap <leader>r :w<CR>:!./%<CR>
 nnoremap ; @
 
 "remove all whitespace errors when saving
 autocmd BufWritePre * :silent! %s/\(\.*\)\s\+$/\1
+
+"Paste from the system clipboard
+nnoremap <leader>p :read !xclip -selection="clipboard" -o<CR>
+
+"ensure the current line is no more than 79 characters long
+nmap <leader>le 072l? <CR>xi<CR><ESC>
 
 "}}}
 "Organisational mappings
@@ -156,8 +213,14 @@ autocmd BufWritePre * :silent! %s/\(\.*\)\s\+$/\1
 "open a file from the current directory
 nnoremap <leader>oi :tabe %:p:h/
 
+"open a file from the current directory in a splitwindow
+nnoremap <leader>os :vsplit %:p:h/
+
+"Change the current directory to the directory containing the current file
+nnoremap <leader>od :chdir %:p:h<CR>
+
 "create a new vimproject file with the currently open tabs
-nnoremap <leader>op :python writeStringToFile("vimproject.sh", "#!/bin/bash\nvim -p " + getCurrentFileList())<CR>
+nnoremap <leader>op :python writeStringToFile("vimproject.sh", "#!/bin/bash\nvim -p " + getCurrentFileList())<CR>:!chmod +x vimproject.sh<CR><CR>
 "}}}
 "Remappings specifically for python code
 "{{{
@@ -166,10 +229,91 @@ python << endpython
 def runPythonUnitTests():
     filetype = getFileType()
     if filetype == 'py':
-        vim.command("!python test.py")
+        if os.path.isfile("manage.py"):
+            # If manage.py exists in the current directory, then this is a django project
+            vim.command("!python3 manage.py test --keepdb")
+        else:
+            vim.command("!python3 -m unittest")
         return True
     return False
 RunUnitTestListeners.append(runPythonUnitTests)
+
+def addPythonImport():
+    filetype = getFileType()
+    if filetype != 'py':
+        return False
+    moduleName = getInput("Name of module: ")
+    importSectionBeginning = findFirstLineStartingWith(['import', 'from'])
+    if ' from ' in moduleName:
+        fromIndex = moduleName.index(' from ')
+        parentModuleIndex = fromIndex + len(' from ')
+        parentModuleName = moduleName[parentModuleIndex:]
+        moduleName = moduleName[:fromIndex]
+        insertLine(importSectionBeginning, "from " + parentModuleName + " import " + moduleName)
+    else:
+        insertLine(importSectionBeginning, "import " + moduleName)
+    setCursor(getRow() + 1, getCol())
+    return True
+addIncludeListeners.append(addPythonImport)
+
+def commentCurrentLinePython():
+    filetype = getFileType()
+    if filetype != 'py':
+        return False
+    currentLineNumber = getRow()
+    currentIndent, currentLine = splitIndentFromText(getLine(currentLineNumber))
+    if currentLine.strip()[0] == '#':
+        setLine(getRow(), currentIndent + currentLine[1:])
+    else:
+        setLine(getRow(), currentIndent + '#' + currentLine)
+    return True
+commentLineListeners.append(commentCurrentLinePython)
+
+def createPythonDebugLine():
+    filetype = getFileType()
+    if filetype != 'py':
+        return False
+    currentLineNumber = getRow()
+    currentIndent, currentLine = splitIndentFromText(getLine(currentLineNumber))
+    if os.path.isfile("manage.py"):
+        # If manage.py exists in the current directory, then this is a django project
+        # We use the debugging function in django projects
+        if linesExist(["import logging", "logger = logging.getLogger('development')"]):
+            setLine(currentLineNumber, currentIndent + "logger.debug(\"" + currentLine +  ": \" + str(" + currentLine + "))")
+            setCursor(getRow(), len(currentIndent))
+        else:
+            # The logging library hasn't been imported, so import it
+            importSectionBeginning = findFirstLineStartingWith(['import', 'from'])
+            insertLine(importSectionBeginning, "logger = logging.getLogger('development')")
+            insertLine(importSectionBeginning, "import logging")
+            setCursor(getRow() + 2, len(currentIndent))
+            setLine(getRow(), currentIndent + "logger.debug(\"" + currentLine +  ": \" + str(" + currentLine + "))")
+    else:
+        # otherwise we just print to stdout
+        setLine(currentLineNumber, currentIndent + "print(\"" + currentLine +  ": \" + str(" + currentLine + "))")
+        setCursor(getRow(), len(currentIndent))
+createDebugLineListeners.append(createPythonDebugLine)
+
+def createPythonPrintLine():
+    filetype = getFileType()
+    if filetype != 'py':
+        return
+    (indent, message) = splitIndentFromText(getLine(getRow()))
+    if os.path.isfile("manage.py"):
+        if linesExist(["import logging", "logger = logging.getLogger('development')"]):
+            debugLine = indent + "logger.debug(\"" + message + "\")"
+        else:
+            # The logging library hasn't been imported, so import it
+            importSectionBeginning = findFirstLineStartingWith(['import', 'from'])
+            insertLine(importSectionBeginning, "logger = logging.getLogger('development')")
+            insertLine(importSectionBeginning, "import logging")
+            setCursor(getRow() + 2, len(indent))
+            debugLine = indent + "logger.debug(\"" + message + "\")"
+    else:
+        debugLine = indent + "print(\"" + message + "\")"
+    setLine(getRow(), debugLine)
+    setCursor(getRow(), len(indent))
+createPrintLineListeners.append(createPythonPrintLine)
 
 endpython
 "}}}
@@ -202,10 +346,10 @@ def createTestFunction():
     appendToCurrentFile(functionBody)
     setCursor(currentLineNumber + 1, getCol())
 
-def addFileToIncludes():
+def addFileToCIncludes():
     filetype = getFileType()
     if filetype != 'cpp' and filetype != 'hpp':
-        return
+        return False
     currentLineNumber = getRow()
     filename = getInput("Filename to include (including \"\" or <>): ")
     if filename.startswith("\"") and filename.endswith("\""):
@@ -215,6 +359,7 @@ def addFileToIncludes():
     else:
         return
     setCursor(currentLineNumber + 1, getCol())
+addIncludeListeners.append(addFileToCIncludes)
 
 def expandClassMethod():
     filetype = getFileType()
@@ -238,7 +383,7 @@ def expandClassMethod():
     insertLine(currentLineNumber + 3, "}")
     setCursor(currentLineNumber + 2, 5)
 
-def createDebugLine():
+def createCPPDebugLine():
     filetype = getFileType()
     if filetype != 'cpp' and filetype != 'hpp':
         return
@@ -247,8 +392,9 @@ def createDebugLine():
     debugLine = indent + "std::cout << \"" + expression + ": \" << " + expression + " << std::endl; // DEBUG_LINE"
     setLine(currentLineNumber, debugLine)
     setCursor(currentLineNumber, len(indent))
+createDebugLineListeners.append(createCPPDebugLine)
 
-def createPrintLine():
+def createCPPPrintLine():
     filetype = getFileType()
     if filetype != 'cpp' and filetype != 'hpp':
         return
@@ -257,6 +403,7 @@ def createPrintLine():
     debugLine = indent + "std::cout << \"" + message + "\" << std::endl; // DEBUG_LINE"
     setLine(currentLineNumber, debugLine)
     setCursor(currentLineNumber, len(indent))
+createPrintLineListeners.append(createCPPPrintLine)
 
 endpython
 
@@ -269,24 +416,40 @@ nnoremap <leader>mm :w<CR>:python runCheckMemoryTests()<CR>
 " test_that_creating_object_works();
 nnoremap <leader>ct :python createTestFunction()<CR>
 
-" output - create a debugging line that outputs the expression on the current
-" line
-nnoremap <leader>co :python createDebugLine()<CR>
-
 " delete all debugging lines in the current file
 nnoremap <leader>cd :%g/^.*\/\/ DEBUG_LINE$/d<CR>
-
-" print - create a debugging line that prints the current line
-nnoremap <leader>cp :python createPrintLine()<CR>
-
-nnoremap <leader>c# :python addFileToIncludes()<CR>
 
 nnoremap <leader>cf :python expandClassMethod()<CR>
 
 "}}}
+"Remappings specifically for javascript code
+"{{{
+python << endpython
+def createJavascriptPrintLine():
+    filetype = getFileType()
+    if filetype != 'js':
+        return
+    (indent, message) = splitIndentFromText(getLine(getRow()))
+    debugLine = indent + "console.log(\"" + message + "\");"
+    setLine(getRow(), debugLine)
+    setCursor(getRow(), len(indent))
+createPrintLineListeners.append(createJavascriptPrintLine)
+
+def createJavascriptDebugLine():
+    filetype = getFileType()
+    if filetype != 'js':
+        return
+    (indent, currentLine) = splitIndentFromText(getLine(getRow()))
+    debugLine = indent + "console.log(\"" + currentLine + ": \" + " + currentLine + ");"
+    setLine(getRow(), debugLine)
+    setCursor(getRow(), len(indent))
+createDebugLineListeners.append(createJavascriptDebugLine)
+
+endpython
+"}}}
 "Remappings applicable to editing any code
 "{{{
-"functions used in this section {{{
+"functions used in this section
 python << endpython
 def replaceSpacesWithUnderscores():
     currentLineNumber = getRow()
@@ -298,10 +461,64 @@ def runUnitTests():
         if runner():
             return
 
+def addToIncludes():
+    for adder in addIncludeListeners:
+        if adder():
+            return
+
+def commentCurrentLine():
+    for commenter in commentLineListeners:
+        if commenter():
+            return
+
+def createDebugLine():
+    for listener in createDebugLineListeners:
+        if listener():
+            return
+
+def createPrintLine():
+    for listener in createPrintLineListeners:
+        if listener():
+            return
+
+
+def zipSpecifiedLines(firstLine, count, sections):
+    oldLines = getLines(firstLine, firstLine + sections * count)
+    newLines = []
+    for lineNumber in range(0, count):
+        for sectionNumber in range(0, sections):
+            newLines.append(oldLines[lineNumber + sectionNumber * count])
+    setLines(firstLine, firstLine + sections * count, newLines)
+
+def zipLines():
+    args = getInput("How many lines should be zipped? ")
+    if ',' in args:
+        args = args.split(',')
+        count = args[0]
+        sections = args[1]
+    else:
+        sections = 2
+        count = args
+    zipSpecifiedLines(getRow(), int(count), int(sections))
+
+def indentTill():
+    finalLineNumber = getInput("Indent all lines till which line number (negative indicates unindent)? ")
+    finalLineNumber = int(finalLineNumber)
+    indent = True
+    if finalLineNumber < 0:
+        indent = False
+        finalLineNumber = -finalLineNumber
+    oldLines = getLines(getRow(), finalLineNumber)
+    newLines = []
+    if indent:
+        for line in oldLines:
+            newLines.append(" " * 4 + line)
+    else:
+        for line in oldLines:
+            newLines.append(line[4:])
+    setLines(getRow(), finalLineNumber, newLines)
+
 endpython
-
-
-"}}}
 
 " <leader>mc (make check) runs the unit tests
 nnoremap <leader>mc :w<CR>:python runUnitTests()<CR>
@@ -317,6 +534,34 @@ nnoremap <leader>ga :!git add .<CR>
 nnoremap <leader>gs :!git status<CR>
 " git commit
 nnoremap <leader>gc :!git commit<CR>
+" git diff
+nnoremap <leader>gd :!git diff<CR>
+" git blame on current file
+nnoremap <leader>gb :!git blame %<CR>
+
+"Add an include/import
+nnoremap <leader>c# :python addToIncludes()<CR>
+
+" alternate between the nth line and the (n + count)th line
+nnoremap <leader>cz :python zipLines()<CR>
+
+" indent all lines till a specified line number
+nnoremap <leader>ci :python indentTill()<CR>
+
+" comment out the current line
+nnoremap <leader>cc :python commentCurrentLine()<CR>
+
+" output - create a debugging line that outputs the expression on the current
+" line
+nnoremap <leader>co :python createDebugLine()<CR>
+
+" print - create a debugging line that prints the current line
+nnoremap <leader>cp :python createPrintLine()<CR>
+
+" Format List - used to put a comma separated list of values on individual
+" lines
+nmap <leader>fl f,wi<CR><ESC>
+
 "}}}
 "Remapping the enter key
 "{{{
@@ -328,11 +573,29 @@ python << endpython
 def matchIndentWithPreviousLine():
     lineNumber = getRow()
     (indent, line) = splitIndentFromText(getLine(lineNumber-1))
-    if line.startswith("//"):
+    if line.startswith("//") or line.startswith(' *') or line.startswith('/*'):
         return
     newLineContent = getLine(lineNumber)
     setLine(lineNumber, indent + newLineContent)
     setCursor(lineNumber, len(indent))
+
+def extendCommentBlock():
+    lineNumber = getRow()
+    (indent, line) = splitIndentFromText(getLine(lineNumber-1))
+    if line.startswith('//'):
+        newLineContent = getLine(lineNumber)
+        setLine(lineNumber, indent + '// ')
+        setCursor(lineNumber, len(indent) + 3)
+    elif not (line.startswith('*') or line.startswith('/*')):
+        return
+    elif '*/' in line:
+        return
+    else:
+        if line.startswith('/'):
+            indent += ' '
+        newLineContent = getLine(lineNumber)[4:]
+        setLine(lineNumber, indent + '* ' + newLineContent)
+        setCursor(lineNumber, len(indent) + 3)
 
 def addBulletPoint():
     if getFileType() != 'md':
@@ -353,10 +616,36 @@ def expandCurlyBrackets():
         setLine(currentLine, str(getLine(currentLine)) + '    ')
         setCursor(currentLine, getCol() + 5)
 
+def expandHtmlTag():
+    if getFileType() != 'html':
+        return
+    currentLineNumber = getRow() - 1
+    currentLine = getLine(currentLineNumber)
+    indent, lineContent = splitIndentFromText(currentLine)
+    r = re.compile(r'<([^\s\/]+)\s*[^>]*>$')
+    matches = [m for m in re.finditer(r, currentLine)]
+    if len(matches) == 0:
+        return
+    match = matches[-1]
+    if match.endpos == len(currentLine):
+        insertLine(currentLineNumber + 2, indent + "</" + match.group(1) + ">")
+    newLineContent = getLine(getRow())
+    setLine(currentLineNumber + 1, "    " + newLineContent)
+    setCursor(currentLineNumber + 1, len(newLineContent) + 4)
+
+PreEnterKeyListeners = [
+]
+
+def EmitPreEnterKeyEvent():
+    for l in PreEnterKeyListeners:
+        l()
+
 EnterKeyListeners = [
     matchIndentWithPreviousLine,
+    extendCommentBlock,
     expandCurlyBrackets,
-    addBulletPoint
+    addBulletPoint,
+    expandHtmlTag
 ]
 
 def EmitEnterKeyEvent():
@@ -365,7 +654,7 @@ def EmitEnterKeyEvent():
 
 endpython
 
-inoremap <CR> <CR><C-O>:python EmitEnterKeyEvent()<CR>
+inoremap <CR> <C-O>:python EmitPreEnterKeyEvent()<CR><CR><C-O>:python EmitEnterKeyEvent()<CR>
 "}}}
 "Remapping the Tab key
 "{{{
@@ -430,4 +719,8 @@ endpython
 
 inoremap <TAB> <C-O>:python EmitBeforeTabKeyEvent()<CR><TAB><C-O>:python EmitTabKeyEvent()<CR>
 inoremap <S-TAB> <C-O>:python EmitShiftTabKeyEvent()<CR>
+"}}}
+"Remappings for CSV files
+"{{{
+autocmd FileType csv nnoremap o :NewRecord<CR>
 "}}}
