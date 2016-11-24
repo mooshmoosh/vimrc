@@ -240,7 +240,7 @@ RunUnitTestListeners.append(runPythonUnitTests)
 
 def addPythonImport():
     filetype = getFileType()
-    if filetype != 'py':
+    if filetype != 'py' and getLine(0) != "#!/usr/bin/python3":
         return False
     moduleName = getInput("Name of module: ")
     importSectionBeginning = findFirstLineStartingWith(['import', 'from'])
