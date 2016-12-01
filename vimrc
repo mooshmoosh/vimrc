@@ -10,6 +10,7 @@ set foldmethod=marker
 set number
 set wrap
 set linebreak
+setlocal spell spelllang=en_au
 set iskeyword=@,48-57,_,192-255,#
 colorscheme desert
 filetype plugin on
