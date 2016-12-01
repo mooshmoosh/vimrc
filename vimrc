@@ -195,8 +195,6 @@ vnoremap P "+P
 nnoremap <leader>ve :tabe ~/.vimrc<CR>
 nnoremap <leader>vs :source ~/.vimrc<CR>
 
-"execute the current file as a script
-nnoremap <leader>r :w<CR>:!./%<CR>
 nnoremap ; @
 
 "remove all whitespace errors when saving
@@ -519,6 +517,13 @@ def indentTill():
             newLines.append(line[4:])
     setLines(getRow(), finalLineNumber, newLines)
 
+def executeCurrentFileAsScript():
+    filetype = getFileType()
+    if filetype == "html":
+        vim.command("!firefox %")
+    else:
+        vim.command("!./%")
+
 endpython
 
 " <leader>mc (make check) runs the unit tests
@@ -563,6 +568,8 @@ nnoremap <leader>cp :python createPrintLine()<CR>
 " lines
 nmap <leader>fl f,wi<CR><ESC>
 
+"execute the current file as a script
+nnoremap <leader>r :w<CR>:python executeCurrentFileAsScript()<CR>
 "}}}
 "Remapping the enter key
 "{{{
