@@ -10,7 +10,7 @@ set foldmethod=marker
 set number
 set wrap
 set linebreak
-setlocal spell spelllang=en_au
+setlocal nospell spelllang=en_au
 set iskeyword=@,48-57,_,192-255,#
 colorscheme desert
 filetype plugin on
@@ -76,6 +76,11 @@ def getChar(i,j):
 
 def insertLine ( i, newLine ):
     vim.current.buffer.append(newLine, i)
+
+def insertLines ( i, newLines ):
+    for line in newLines:
+        vim.current.buffer.append(line, i)
+        i += 1
 
 def setLine(i, newLine):
     vim.current.buffer[i] = newLine
@@ -170,7 +175,8 @@ nnoremap <leader>? :tabm +1<CR>
 nnoremap <leader><LT> :tabm -1<CR>
 
 "Window related mappings
-nnoremap <leader>w <C-W>
+nnoremap <leader>ws <C-W>v
+nnoremap <leader>wv <C-W>s
 
 "Make d, x delete and forget, make s cut
 vnoremap s "+d
@@ -203,9 +209,6 @@ autocmd BufWritePre * :silent! %s/\(\.*\)\s\+$/\1
 "Paste from the system clipboard
 nnoremap <leader>p :read !xclip -selection="clipboard" -o<CR>
 
-"ensure the current line is no more than 79 characters long
-nmap <leader>le 072l? <CR>xi<CR><ESC>
-
 "}}}
 "Organisational mappings
 "{{{
@@ -230,9 +233,9 @@ def runPythonUnitTests():
     if filetype == 'py':
         if os.path.isfile("manage.py"):
             # If manage.py exists in the current directory, then this is a django project
-            vim.command("!python3 manage.py test --keepdb")
+            vim.command("!python3 manage.py test")
         else:
-            vim.command("!python3 -m unittest")
+            vim.command("!python3 -m unittest discover")
         return True
     return False
 RunUnitTestListeners.append(runPythonUnitTests)
@@ -522,9 +525,38 @@ def executeCurrentFileAsScript():
     if filetype == "html":
         vim.command("!firefox %")
     else:
-        vim.command("!./%")
+        vim.command("!" + getFilename())
+
+def splitWords(text, max_length):
+    words = text.split(' ')
+    length = len(words[0])
+    word_count = 1
+    while length < max_length:
+        length += len(words[word_count]) + 1
+        word_count += 1
+    word_count -= 1
+    result = ' '.join(words[:word_count])
+    return result, text[len(result):].strip()
+
+def splitCurrentLineIntoParagraphs():
+    current_line_number = getRow()
+    current_line = getLine(current_line_number)
+    new_lines = []
+    (indent, remaining_text) = splitIndentFromText(current_line)
+    if remaining_text.startswith('// '):
+        remaining_text = remaining_text[3:]
+        indent += "// "
+    while len(remaining_text) + len(indent) > 72:
+        new_line, remaining_text = splitWords(remaining_text, 72 - len(indent))
+        new_lines.append(indent + new_line)
+    new_lines.append(indent + remaining_text)
+    deleteLine(current_line_number)
+    insertLines(current_line_number, new_lines)
 
 endpython
+
+" ensure the current line is no more than 72 characters long
+nmap <leader>le :python splitCurrentLineIntoParagraphs()<CR>
 
 " <leader>mc (make check) runs the unit tests
 nnoremap <leader>mc :w<CR>:python runUnitTests()<CR>
@@ -731,4 +763,27 @@ inoremap <S-TAB> <C-O>:python EmitShiftTabKeyEvent()<CR>
 "Remappings for CSV files
 "{{{
 autocmd FileType csv nnoremap o :NewRecord<CR>
+"}}}
+"custom commands (python functions)
+"{{{
+nnoremap <leader>pr :python executePythonFunction()<CR>
+
+python << endpython
+def executePythonFunction():
+    command = getInput(":")
+    command = command.split(' ', 1)
+    if len(command) == 0:
+        return
+    if len(command) > 1:
+        argument = repr(command[1].strip())
+    else:
+        argument = ''
+    command = command[0]
+    print(" ") # This line ensures output of the command appears on the next line. Not the same line as the ":commandname"
+    vim.command("python " + command + "(" + argument + ")")
+
+def testcommand(argument=""):
+    print("It worked!")
+
+endpython
 "}}}
