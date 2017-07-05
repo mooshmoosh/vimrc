@@ -12,10 +12,27 @@ set wrap
 set linebreak
 setlocal nospell spelllang=en_au
 set iskeyword=@,48-57,_,192-255,#
-colorscheme desert
 filetype plugin on
 let mapleader = ","
+hi MatchParen ctermbg=blue guibg=lightblue
 
+"}}}
+" vim-plug setup
+"{{{
+call plug#begin('~/.config/nvim/plugged')
+
+" A better file browser
+Plug 'scrooloose/nerdtree'
+" fuzzy searching
+Plug 'ctrlpvim/ctrlp.vim'
+" Highligh the corresponding html tag
+Plug 'valloric/MatchTagAlways'
+" This lets leader% jump to the corresponding tag, similarly to how % works on
+" brackets
+nnoremap <leader>% :MtaJumpToOtherTag<cr>
+"csv plugin
+Plug 'chrisbra/csv.vim'
+call plug#end()
 "}}}
 "Python set up. Mainly my wrapper around Vim API
 "{{{
@@ -25,6 +42,7 @@ import os
 import re
 import requests
 import json
+import subprocess
 
 # This contains a list of functions that each check if the file being edited is a particular type
 # If it is a certain type, then the unit tests will be run, and the function returns true, other wise
@@ -192,6 +210,7 @@ nnoremap <leader>? :tabm +1<CR>
 nnoremap <leader><LT> :tabm -1<CR>
 
 "Window related mappings
+nnoremap <leader>w <C-W>
 nnoremap <leader>ws <C-W>v
 nnoremap <leader>wv <C-W>s
 
@@ -541,6 +560,11 @@ def executeCurrentFileAsScript():
     else:
         vim.command("!" + getFilename())
 
+def executeCurrentScriptIntoNewTab():
+    with subprocess.Popen(['/bin/bash', getFilename()], stdout=subprocess.PIPE) as p:
+        result = p.stdout.read()
+    newTab(initial_text=result.decode('UTF-8'))
+
 def splitWords(text, max_length):
     words = text.split(' ')
     length = len(words[0])
@@ -615,7 +639,7 @@ nnoremap <leader>cp :python3 createPrintLine()<CR>
 nmap <leader>fl f,wi<CR><ESC>
 
 "execute the current file as a script
-nnoremap <leader>r :w<CR>:python3 executeCurrentFileAsScript()<CR>
+nnoremap <leader>r :w<CR>:python3 executeCurrentScriptIntoNewTab()<CR>
 "}}}
 "Remapping the enter key
 "{{{
@@ -660,7 +684,7 @@ def addBulletPoint():
         setCursor(currentLine, getCol() + 2)
 
 def expandCurlyBrackets():
-    if getFileType() != 'cpp' and getFileType() != 'hpp':
+    if getFileType() not in ['cpp', 'hpp', 'json', 'py']:
         return
     currentLine = getRow()
     if len(getLine(currentLine - 1)) < 1:
@@ -669,23 +693,6 @@ def expandCurlyBrackets():
         insertLine(currentLine + 1, getLine(currentLine) + '}')
         setLine(currentLine, str(getLine(currentLine)) + '    ')
         setCursor(currentLine, getCol() + 5)
-
-def expandHtmlTag():
-    if getFileType() != 'html':
-        return
-    currentLineNumber = getRow() - 1
-    currentLine = getLine(currentLineNumber)
-    indent, lineContent = splitIndentFromText(currentLine)
-    r = re.compile(r'<([^\s\/]+)\s*[^>]*>$')
-    matches = [m for m in re.finditer(r, currentLine)]
-    if len(matches) == 0:
-        return
-    match = matches[-1]
-    if match.endpos == len(currentLine):
-        insertLine(currentLineNumber + 2, indent + "</" + match.group(1) + ">")
-    newLineContent = getLine(getRow())
-    setLine(currentLineNumber + 1, "    " + newLineContent)
-    setCursor(currentLineNumber + 1, len(newLineContent) + 4)
 
 PreEnterKeyListeners = [
 ]
@@ -698,8 +705,7 @@ EnterKeyListeners = [
     matchIndentWithPreviousLine,
     extendCommentBlock,
     expandCurlyBrackets,
-    addBulletPoint,
-    expandHtmlTag
+    addBulletPoint
 ]
 
 def EmitEnterKeyEvent():
@@ -776,6 +782,7 @@ inoremap <S-TAB> <C-O>:python3 EmitShiftTabKeyEvent()<CR>
 "Remappings for CSV files
 "{{{
 autocmd FileType csv nnoremap o :NewRecord<CR>
+autocmd FileType csv :%CSVArrangeColumn
 "}}}
 "custom commands (python3 functions)
 "{{{
