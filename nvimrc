@@ -32,6 +32,8 @@ Plug 'valloric/MatchTagAlways'
 nnoremap <leader>% :MtaJumpToOtherTag<cr>
 "csv plugin
 Plug 'chrisbra/csv.vim'
+" vim orgmode
+Plug 'jceb/vim-orgmode'
 call plug#end()
 "}}}
 "Python set up. Mainly my wrapper around Vim API
@@ -241,6 +243,10 @@ nnoremap ; @
 
 "remove all whitespace errors when saving
 autocmd BufWritePre * :silent! %s/\(\.*\)\s\+$/\1
+
+" <leader>tt opens a terminal in a new tab. the default behaviour is to use
+" buffers.
+nnoremap <leader>tt :tabe term://bash<CR>
 
 "}}}
 "Organisational mappings
