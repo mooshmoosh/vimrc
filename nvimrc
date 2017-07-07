@@ -14,7 +14,7 @@ setlocal nospell spelllang=en_au
 set iskeyword=@,48-57,_,192-255,#
 filetype plugin on
 let mapleader = ","
-hi MatchParen ctermbg=blue guibg=lightblue
+hi MatchParen ctermbg=1 guibg=lightblue
 
 "}}}
 " vim-plug setup
@@ -32,8 +32,16 @@ Plug 'valloric/MatchTagAlways'
 nnoremap <leader>% :MtaJumpToOtherTag<cr>
 "csv plugin
 Plug 'chrisbra/csv.vim'
-" vim orgmode
-Plug 'jceb/vim-orgmode'
+" beautifiers for json and xml
+Plug 'xni/vim-beautifiers'
+" grepping files
+Plug 'mhinz/vim-grepper'
+" Has a lot of features of orgmode without being a monolith
+Plug 'xolox/vim-misc'
+Plug 'xolox/vim-notes'
+" Allows organising notes and todos in markdown files that are linked
+Plug 'vimwiki/vimwiki'
+
 call plug#end()
 "}}}
 "Python set up. Mainly my wrapper around Vim API
@@ -210,11 +218,6 @@ nnoremap <leader>q :q<CR>
 "Moving tabs left and right
 nnoremap <leader>? :tabm +1<CR>
 nnoremap <leader><LT> :tabm -1<CR>
-
-"Window related mappings
-nnoremap <leader>w <C-W>
-nnoremap <leader>ws <C-W>v
-nnoremap <leader>wv <C-W>s
 
 "Make d, x delete and forget, make s cut
 vnoremap s "+d
@@ -567,7 +570,12 @@ def executeCurrentFileAsScript():
         vim.command("!" + getFilename())
 
 def executeCurrentScriptIntoNewTab():
-    with subprocess.Popen(['/bin/bash', getFilename()], stdout=subprocess.PIPE) as p:
+    if getLine(0).startswith('#!'):
+        # get the environment from shebang
+        environment = getLine(0)[2:]
+    else:
+        print("No shebang found")
+    with subprocess.Popen([environment, getFilename()], stdout=subprocess.PIPE) as p:
         result = p.stdout.read()
     newTab(initial_text=result.decode('UTF-8'))
 
@@ -720,7 +728,8 @@ def EmitEnterKeyEvent():
 
 endpython3
 
-inoremap <CR> <C-O>:python3 EmitPreEnterKeyEvent()<CR><CR><C-O>:python3 EmitEnterKeyEvent()<CR>
+"commented out because I think it clashes with extenstions
+"inoremap <CR> <C-O>:python3 EmitPreEnterKeyEvent()<CR><CR><C-O>:python3 EmitEnterKeyEvent()<CR>
 "}}}
 "Remapping the Tab key
 "{{{
@@ -782,8 +791,8 @@ def EmitBeforeTabKeyEvent():
 
 endpython3
 
-inoremap <TAB> <C-O>:python3 EmitBeforeTabKeyEvent()<CR><TAB><C-O>:python3 EmitTabKeyEvent()<CR>
-inoremap <S-TAB> <C-O>:python3 EmitShiftTabKeyEvent()<CR>
+"inoremap <TAB> <C-O>:python3 EmitBeforeTabKeyEvent()<CR><TAB><C-O>:python3 EmitTabKeyEvent()<CR>
+"inoremap <S-TAB> <C-O>:python3 EmitShiftTabKeyEvent()<CR>
 "}}}
 "Remappings for CSV files
 "{{{
@@ -816,4 +825,9 @@ def testcommand(argument=""):
     print("It worked!")
 
 endpython3
+"}}}
+"Configure personal wiki location
+"{{{
+let g:vimwiki_list = [{'path': '~/Documents/Notes/vimwiki'}]
+let g:notes_directories = ['~/Documents/Notes/notes']
 "}}}
