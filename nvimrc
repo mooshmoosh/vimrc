@@ -15,6 +15,7 @@ set iskeyword=@,48-57,_,192-255,#
 filetype plugin on
 let mapleader = ","
 hi MatchParen ctermbg=1 guibg=lightblue
+let $IN_NVIM_TERMINAL="YES"
 
 "}}}
 " vim-plug setup
@@ -214,6 +215,9 @@ inoremap kj <ESC>
 nnoremap <leader>, :tabN<CR>
 nnoremap <leader>/ :tabn<CR>
 nnoremap <leader>q :q<CR>
+
+"ctrl kj in terminal should take me to normal mode
+tnoremap <C-k><C-j> <C-\><C-n>
 
 "Moving tabs left and right
 nnoremap <leader>? :tabm +1<CR>
