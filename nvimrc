@@ -216,9 +216,6 @@ nnoremap <leader>, :tabN<CR>
 nnoremap <leader>/ :tabn<CR>
 nnoremap <leader>q :q<CR>
 
-"ctrl kj in terminal should take me to normal mode
-tnoremap <C-k><C-j> <C-\><C-n>
-
 "Moving tabs left and right
 nnoremap <leader>? :tabm +1<CR>
 nnoremap <leader><LT> :tabm -1<CR>
@@ -253,7 +250,13 @@ autocmd BufWritePre * :silent! %s/\(\.*\)\s\+$/\1
 
 " <leader>tt opens a terminal in a new tab. the default behaviour is to use
 " buffers.
-nnoremap <leader>tt :tabe term://bash<CR>
+nnoremap <leader>tt :tabe term://bash<CR>A
+" Similarly, but split window
+nnoremap <leader>tw :vsplit term://bash<CR>
+"ctrl kj in terminal should take me to normal mode
+tnoremap <C-k><C-j> <C-\><C-n>
+"Ctrl W should still work to move windows in terminal mode
+tnoremap <C-w> <C-\><C-n><C-w>
 
 "}}}
 "Organisational mappings
@@ -261,8 +264,11 @@ nnoremap <leader>tt :tabe term://bash<CR>
 "open a file from the current directory
 nnoremap <leader>oi :tabe %:p:h/
 
+"open the directory tree
+nnoremap <leader>nt :NERDTree<CR>
+
 "open a file from the current directory in a splitwindow
-nnoremap <leader>os :vsplit %:p:h/
+nnoremap <leader>oh :vsplit %:p:h/
 
 "Change the current directory to the directory containing the current file
 nnoremap <leader>od :chdir %:p:h<CR>
@@ -279,16 +285,16 @@ def runPythonUnitTests():
     if filetype == 'py':
         if os.path.isfile("manage.py"):
             # If manage.py exists in the current directory, then this is a django project
-            vim.command("!python33 manage.py test")
+            vim.command("!python3 manage.py test")
         else:
-            vim.command("!python33 -m unittest discover")
+            vim.command("!python3 -m unittest discover")
         return True
     return False
 RunUnitTestListeners.append(runPythonUnitTests)
 
 def addPythonImport():
     filetype = getFileType()
-    if filetype != 'py' and getLine(0) != "#!/usr/bin/python33":
+    if filetype != 'py' and getLine(0) != "#!/usr/bin/python3":
         return False
     moduleName = getInput("Name of module: ")
     importSectionBeginning = findFirstLineStartingWith(['import', 'from'])
@@ -300,7 +306,10 @@ def addPythonImport():
         insertLine(importSectionBeginning, "from " + parentModuleName + " import " + moduleName)
     else:
         insertLine(importSectionBeginning, "import " + moduleName)
-    setCursor(getRow() + 1, getCol())
+    try:
+        setCursor(getRow() + 1, getCol())
+    except:
+        setCursor(getRow(), getCol())
     return True
 addIncludeListeners.append(addPythonImport)
 
@@ -579,9 +588,11 @@ def executeCurrentScriptIntoNewTab():
         environment = getLine(0)[2:]
     else:
         print("No shebang found")
-    with subprocess.Popen([environment, getFilename()], stdout=subprocess.PIPE) as p:
-        result = p.stdout.read()
-    newTab(initial_text=result.decode('UTF-8'))
+    with subprocess.Popen([environment, getFilename()], stderr=subprocess.PIPE, stdout=subprocess.PIPE) as p:
+        result = p.stdout.read().decode()
+        result += "\n"
+        result += p.stderr.read().decode()
+    newTab(initial_text=result)
 
 def splitWords(text, max_length):
     words = text.split(' ')
@@ -620,8 +631,9 @@ nnoremap <leader>mc :w<CR>:python3 runUnitTests()<CR>
 " <leader>cu replaces spaces in the current line with underscores
 nnoremap <leader>cu :python3 replaceSpacesWithUnderscores()<CR>
 
-" git patch add
-nnoremap <leader>gp :!git add -p<CR>
+" git patch add -> in a new tab open a file to hold the commit message, and
+" next to it a terminal window running git patch add
+nnoremap <leader>gp :tabe commitmsg<CR>:vsplit term:///bin/bash<CR>Agit add -p<CR>
 " git add all files
 nnoremap <leader>ga :!git add .<CR>
 " git status
@@ -629,7 +641,7 @@ nnoremap <leader>gs :!git status<CR>
 " git commit
 nnoremap <leader>gc :!git commit<CR>
 " git diff
-nnoremap <leader>gd :!git diff<CR>
+nnoremap <leader>gd :vsplit term:///bin/bash<CR>Agit diff<CR>
 " git blame on current file
 nnoremap <leader>gb :!git blame %<CR>
 
