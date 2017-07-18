@@ -380,7 +380,7 @@ endpython3
 python3 << endpython3
 def runCPPUnitTests():
     filetype = getFileType()
-    if filetype == 'cpp' or filetype == 'hpp':
+    if filetype in ['cpp', 'hpp', 'c', 'h']:
         vim.command("!make check")
         return True
     return False
@@ -388,7 +388,7 @@ RunUnitTestListeners.append(runCPPUnitTests)
 
 def runCheckMemoryTests():
     filetype = getFileType()
-    if filetype == 'cpp' or filetype == 'hpp':
+    if filetype in ['cpp', 'hpp', 'c', 'h']:
         vim.command("!make check_memory")
 
 def createTestFunction():
