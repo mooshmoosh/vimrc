@@ -37,11 +37,31 @@ Plug 'chrisbra/csv.vim'
 Plug 'xni/vim-beautifiers'
 " grepping files
 Plug 'mhinz/vim-grepper'
-" Has a lot of features of orgmode without being a monolith
-Plug 'xolox/vim-misc'
-Plug 'xolox/vim-notes'
 " Allows organising notes and todos in markdown files that are linked
 Plug 'vimwiki/vimwiki'
+" Displays the new/modified lines with git in real time
+Plug 'airblade/vim-gitgutter'
+let g:gitgutter_diff_args = '--patience'
+" Allows for aligining of text at specified characters
+Plug 'junegunn/vim-easy-align'
+" Start interactive EasyAlign in visual mode (e.g. vipga)
+xmap ga <Plug>(EasyAlign)
+" Start interactive EasyAlign for a motion/text object (e.g. gaip)
+nmap ga <Plug>(EasyAlign)
+" A powerline - decide what I want it for first
+" You can specify a function and have its output inserted into the status bar
+" at the bottom.
+" Plug 'itchyny/lightline.vim'
+" dispatch lets you run jobs/builds in the background asynchronously.
+Plug 'tpope/vim-dispatch'
+" scratchpad lets you run python in real time
+Plug 'metakirby5/codi.vim'
+let g:codi#interpreters = {
+       \ 'python': {
+           \ 'bin': 'python3',
+           \ 'prompt': '^\(>>>\|\.\.\.\) ',
+           \ },
+       \ }
 
 call plug#end()
 "}}}
