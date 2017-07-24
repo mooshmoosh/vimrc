@@ -1,7 +1,7 @@
 "Preliminiaries. Set up core vim settings
 "{{{
 
-syntax enable
+syntax on
 set shiftwidth=4
 set softtabstop=4
 set tabstop=4
@@ -13,7 +13,7 @@ set linebreak
 setlocal nospell spelllang=en_au
 set iskeyword=@,48-57,_,192-255,#
 filetype plugin on
-let mapleader = ","
+let mapleader=","
 hi MatchParen ctermbg=1 guibg=lightblue
 let $IN_NVIM_TERMINAL="YES"
 
@@ -37,9 +37,6 @@ Plug 'chrisbra/csv.vim'
 Plug 'xni/vim-beautifiers'
 " grepping files
 Plug 'mhinz/vim-grepper'
-" Has a lot of features of orgmode without being a monolith
-Plug 'xolox/vim-misc'
-Plug 'xolox/vim-notes'
 " Allows organising notes and todos in markdown files that are linked
 Plug 'vimwiki/vimwiki'
 
@@ -215,6 +212,12 @@ inoremap kj <ESC>
 nnoremap <leader>, :tabN<CR>
 nnoremap <leader>/ :tabn<CR>
 nnoremap <leader>q :q<CR>
+
+" I'm not sure what ctrl-W in insert mode is supposed to do, but I often
+" accidently forget I'm in insert mode, want to switch to another window and
+" hit ctrl-W. it deletes the last couple of words I just typed. So this makes
+" it escape insert mode and behave like normal mode ctrl-W
+inoremap <C-w> <ESC><C-w>
 
 "Moving tabs left and right
 nnoremap <leader>? :tabm +1<CR>
@@ -844,6 +847,5 @@ endpython3
 "}}}
 "Configure personal wiki location
 "{{{
-let g:vimwiki_list = [{'path': '~/Documents/Notes/vimwiki'}]
-let g:notes_directories = ['~/Documents/Notes/notes']
+let g:vimwiki_list = [{'path': '~/Documents/Notes/vimwiki', 'syntax': 'markdown', 'ext': '.md'}]
 "}}}
