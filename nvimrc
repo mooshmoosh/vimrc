@@ -854,7 +854,7 @@ def testcommand(argument=""):
 
 endpython3
 "}}}
-"Configure personal wiki location
+"Configure personal wiki
 "{{{
 let g:vimwiki_list = [{'path': '~/Documents/Notes/vimwiki', 'syntax': 'markdown', 'ext': '.md'}]
 "}}}
