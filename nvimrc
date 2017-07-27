@@ -10,6 +10,8 @@ set foldmethod=marker
 set number
 set wrap
 set linebreak
+set nohlsearch
+set hidden
 setlocal nospell spelllang=en_au
 set iskeyword=@,48-57,_,192-255,#
 filetype plugin on
@@ -39,6 +41,8 @@ Plug 'xni/vim-beautifiers'
 Plug 'mhinz/vim-grepper'
 " Allows organising notes and todos in markdown files that are linked
 Plug 'vimwiki/vimwiki'
+" Shows the active buffers, as if I was using tabs
+Plug 'fholgado/minibufexpl.vim'
 
 call plug#end()
 "}}}
@@ -141,12 +145,6 @@ def tabCount():
 def switchToTab ( i ):
     vim.current.tabpage = vim.tabpages[i]
 
-def bufferNumberOfTab ( i ):
-    return vim.tabpages[i].window.buffer.number
-
-def filenameOfTab ( i ):
-    return vim.tabpages[i].window.buffer.name
-
 def findLine(lineContent):
     for (i, l) in enumerate(vim.current.buffer):
         if l == lineContent:
@@ -180,12 +178,6 @@ def splitIndentFromText ( line ):
         i+=1
     return ( line[0:i], line[i:] )
 
-def getCurrentFileList():
-    result = [];
-    for i in range(0, tabCount()):
-        result.append(filenameOfTab(i))
-    return " ".join(result)
-
 def appendToCurrentFile(content):
     content = content.splitlines()
     for l in content:
@@ -209,19 +201,15 @@ endpython3
 
 "Navigation shortcuts
 inoremap kj <ESC>
-nnoremap <leader>, :tabN<CR>
-nnoremap <leader>/ :tabn<CR>
-nnoremap <leader>q :q<CR>
+nnoremap <leader>, :bN<CR>
+nnoremap <leader>/ :bn<CR>
+nnoremap <leader>q :bdelete<CR>
 
 " I'm not sure what ctrl-W in insert mode is supposed to do, but I often
 " accidently forget I'm in insert mode, want to switch to another window and
 " hit ctrl-W. it deletes the last couple of words I just typed. So this makes
 " it escape insert mode and behave like normal mode ctrl-W
 inoremap <C-w> <ESC><C-w>
-
-"Moving tabs left and right
-nnoremap <leader>? :tabm +1<CR>
-nnoremap <leader><LT> :tabm -1<CR>
 
 "Make d, x delete and forget, make s cut
 vnoremap s "+d
@@ -243,7 +231,7 @@ nnoremap P "+P
 vnoremap P "+P
 
 "Shortcuts for opening and loading vimrc
-nnoremap <leader>ve :tabe ~/.config/nvim/init.vim<CR>
+nnoremap <leader>ve :edit ~/.config/nvim/init.vim<CR>
 nnoremap <leader>vs :source ~/.config/nvim/init.vim<CR>
 
 nnoremap ; @
@@ -265,7 +253,7 @@ tnoremap <C-w> <C-\><C-n><C-w>
 "Organisational mappings
 "{{{
 "open a file from the current directory
-nnoremap <leader>oi :tabe %:p:h/
+nnoremap <leader>oi :edit %:p:h/
 
 "open the directory tree
 nnoremap <leader>nt :NERDTree<CR>
@@ -276,8 +264,6 @@ nnoremap <leader>oh :vsplit %:p:h/
 "Change the current directory to the directory containing the current file
 nnoremap <leader>od :chdir %:p:h<CR>
 
-"create a new vimproject file with the currently open tabs
-nnoremap <leader>op :python3 writeStringToFile("vimproject.sh", "#!/bin/bash\nvim -p " + getCurrentFileList())<CR>:!chmod +x vimproject.sh<CR><CR>
 "}}}
 "Remappings specifically for python3 code
 "{{{
