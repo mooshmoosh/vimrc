@@ -28,6 +28,7 @@ call plug#begin('~/.config/nvim/plugged')
 Plug 'scrooloose/nerdtree'
 " fuzzy searching
 Plug 'ctrlpvim/ctrlp.vim'
+let g:ctrlp_user_command = ['.git/', 'git --git-dir=%s/.git ls-files -oc --exclude-standard']
 " Highligh the corresponding html tag
 Plug 'valloric/MatchTagAlways'
 " This lets leader% jump to the corresponding tag, similarly to how % works on
@@ -64,9 +65,6 @@ let g:codi#interpreters = {
            \ 'prompt': '^\(>>>\|\.\.\.\) ',
            \ },
        \ }
-" Shows the active buffers, as if I was using tabs
-Plug 'fholgado/minibufexpl.vim'
-
 call plug#end()
 "}}}
 "Python set up. Mainly my wrapper around Vim API
@@ -137,6 +135,9 @@ def insertLines ( i, newLines ):
         vim.current.buffer.append(line, i)
         i += 1
 
+def currentTabWindowCount():
+    return len(vim.current.tabpage.windows)
+
 def insertText(i, text):
     """Like insert lines, but takes a single (possibly multiline)
     string."""
@@ -152,7 +153,12 @@ def newTab(initial_text="", tabname=""):
     appendText(initial_text)
     deleteLine(0)
 
-def setLine(i, newLine):
+def newBuffer(initial_text=""):
+    vim.command('enew')
+    appendText(initial_text)
+    deleteLine(0)
+
+def setLine(i, newLink):
     vim.current.buffer[i] = newLine
 
 def setLines(i, j, newLines):
@@ -217,6 +223,12 @@ def getInput(message = "? "):
     vim.command("call inputrestore()")
     return vim.eval("python3_user_input")
 
+def quitCurrentBuffer():
+    if currentTabWindowCount() > 1:
+        vim.command(':quit')
+    else:
+        vim.command(':bdelete')
+
 endpython3
 "}}}
 "simple remappings
@@ -226,7 +238,7 @@ endpython3
 inoremap kj <ESC>
 nnoremap <leader>, :bN<CR>
 nnoremap <leader>/ :bn<CR>
-nnoremap <leader>q :bdelete<CR>
+nnoremap <leader>q :python3 quitCurrentBuffer()<CR>
 
 " I'm not sure what ctrl-W in insert mode is supposed to do, but I often
 " accidently forget I'm in insert mode, want to switch to another window and
@@ -262,9 +274,8 @@ nnoremap ; @
 "remove all whitespace errors when saving
 autocmd BufWritePre * :silent! %s/\(\.*\)\s\+$/\1
 
-" <leader>tt opens a terminal in a new tab. the default behaviour is to use
-" buffers.
-nnoremap <leader>tt :tabe term://bash<CR>A
+" <leader>tt opens a terminal.
+nnoremap <leader>tt :edit term://bash<CR>A
 " Similarly, but split window
 nnoremap <leader>tw :vsplit term://bash<CR>
 "ctrl kj in terminal should take me to normal mode
@@ -594,17 +605,18 @@ def executeCurrentFileAsScript():
     else:
         vim.command("!" + getFilename())
 
-def executeCurrentScriptIntoNewTab():
+def executeCurrentScriptIntoNewBuffer():
     if getLine(0).startswith('#!'):
         # get the environment from shebang
         environment = getLine(0)[2:]
     else:
         print("No shebang found")
+        return
     with subprocess.Popen([environment, getFilename()], stderr=subprocess.PIPE, stdout=subprocess.PIPE) as p:
         result = p.stdout.read().decode()
         result += "\n"
         result += p.stderr.read().decode()
-    newTab(initial_text=result)
+    newBuffer(initial_text=result)
 
 def splitWords(text, max_length):
     words = text.split(' ')
@@ -643,9 +655,9 @@ nnoremap <leader>mc :w<CR>:python3 runUnitTests()<CR>
 " <leader>cu replaces spaces in the current line with underscores
 nnoremap <leader>cu :python3 replaceSpacesWithUnderscores()<CR>
 
-" git patch add -> in a new tab open a file to hold the commit message, and
+" git patch add -> open a file to hold the commit message, and
 " next to it a terminal window running git patch add
-nnoremap <leader>gp :tabe commitmsg<CR>:vsplit term:///bin/bash<CR>Agit add -p<CR>
+nnoremap <leader>gp :edit commitmsg<CR>:vsplit term:///bin/bash<CR>Agit add -p<CR>
 " git add all files
 nnoremap <leader>ga :!git add .<CR>
 " git status
@@ -681,7 +693,7 @@ nnoremap <leader>cp :python3 createPrintLine()<CR>
 nmap <leader>fl f,wi<CR><ESC>
 
 "execute the current file as a script
-nnoremap <leader>r :w<CR>:python3 executeCurrentScriptIntoNewTab()<CR>
+nnoremap <leader>r :w<CR>:python3 executeCurrentScriptIntoNewBuffer()<CR>
 "}}}
 "Remapping the enter key
 "{{{
