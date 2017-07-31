@@ -223,11 +223,32 @@ def getInput(message = "? "):
     vim.command("call inputrestore()")
     return vim.eval("python3_user_input")
 
+def NerdtreeIsOpen():
+    buffer_names = [window.buffer.name for window in vim.current.tabpage.windows]
+    for name in buffer_names:
+        if "NERD_tree" in name:
+            return True
+    return False
+
 def quitCurrentBuffer():
-    if currentTabWindowCount() > 1:
-        vim.command(':quit')
+    filename = getFilename()
+    if filename == "" or filename.startswith('term://'):
+        quit_command = ":bdelete!"
     else:
-        vim.command(':bdelete')
+        quit_command = ":bdelete"
+    window_count = currentTabWindowCount()
+
+    if window_count == 2 and NerdtreeIsOpen():
+            current_buffer = vim.current.window.buffer.number
+            vim.command(':bnext')
+            vim.command(quit_command + ' ' + str(current_buffer))
+    elif window_count > 1:
+            vim.command(':quit')
+    else:
+        try:
+            vim.command(quit_command)
+        except:
+            print("This buffer has been modified!")
 
 endpython3
 "}}}
@@ -288,6 +309,10 @@ tnoremap <C-w> <C-\><C-n><C-w>
 "{{{
 "open a file from the current directory
 nnoremap <leader>oi :edit %:p:h/
+
+"open a file that is already open. This shows the open buffers and gets ready
+"to recieve a numbered buffer to switch to.
+nnoremap <leader>oo :ls<CR>:b
 
 "open the directory tree
 nnoremap <leader>nt :NERDTree<CR>
@@ -404,7 +429,7 @@ python3 << endpython3
 def runCPPUnitTests():
     filetype = getFileType()
     if filetype in ['cpp', 'hpp', 'c', 'h']:
-        vim.command("!make check")
+        runShellCommandIntoNewBuffer("make check")
         return True
     return False
 RunUnitTestListeners.append(runCPPUnitTests)
@@ -412,7 +437,7 @@ RunUnitTestListeners.append(runCPPUnitTests)
 def runCheckMemoryTests():
     filetype = getFileType()
     if filetype in ['cpp', 'hpp', 'c', 'h']:
-        vim.command("!make check_memory")
+        runShellCommandIntoNewBuffer("make check_memory")
 
 def createTestFunction():
     filetype = getFileType()
@@ -604,6 +629,13 @@ def executeCurrentFileAsScript():
         vim.command("!firefox %")
     else:
         vim.command("!" + getFilename())
+
+def runShellCommandIntoNewBuffer(command):
+    with subprocess.Popen([command], stderr=subprocess.PIPE, stdout=subprocess.PIPE, shell=True) as p:
+        result = p.stdout.read().decode()
+        result += "\n"
+        result += p.stderr.read().decode()
+    newBuffer(initial_text=result)
 
 def executeCurrentScriptIntoNewBuffer():
     if getLine(0).startswith('#!'):
