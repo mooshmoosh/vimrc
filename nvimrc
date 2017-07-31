@@ -314,6 +314,9 @@ nnoremap <leader>oi :edit %:p:h/
 "to recieve a numbered buffer to switch to.
 nnoremap <leader>oo :ls<CR>:b
 
+"open a new file
+nnoremap <leader>on :enew<CR>
+
 "open the directory tree
 nnoremap <leader>nt :NERDTree<CR>
 
