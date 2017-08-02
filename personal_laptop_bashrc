@@ -34,8 +34,10 @@ function vim() {
 alias thumb="python3 -c 'print(\"\U0001F44D\")' | xclip -in -selection \"clipboard\""
 alias panda="python3 -c 'print(\"\U0001F43C\")' | xclip -in -selection \"clipboard\""
 
-PATH=$PATH:/home/wmischlewski/gitrepos/hackerscripts
-PATH=$PATH:/home/wmischlewski/large-bin
+PATH=$PATH:/home/will/bin
 
-export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre/
+function pacdiff {
+    sudo nvim -d $1 "$1".pacnew
+}
+
 
