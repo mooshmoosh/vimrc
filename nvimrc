@@ -65,6 +65,9 @@ let g:codi#interpreters = {
            \ 'prompt': '^\(>>>\|\.\.\.\) ',
            \ },
        \ }
+Plug 'marcweber/vim-addon-mw-utils'
+Plug 'tomtom/tlib_vim'
+Plug 'garbas/vim-snipmate'
 call plug#end()
 "}}}
 "Python set up. Mainly my wrapper around Vim API
@@ -230,12 +233,15 @@ def NerdtreeIsOpen():
             return True
     return False
 
-def quitCurrentBuffer():
+def quitCurrentBuffer(force=False):
     filename = getFilename()
     if filename == "" or filename.startswith('term://'):
         quit_command = ":bdelete!"
     else:
-        quit_command = ":bdelete"
+        if force:
+            quit_command = ":bdelete!"
+        else:
+            quit_command = ":bdelete"
     window_count = currentTabWindowCount()
 
     if window_count == 2 and NerdtreeIsOpen():
@@ -259,8 +265,13 @@ endpython3
 inoremap kj <ESC>
 nnoremap <leader>, :bN<CR>
 nnoremap <leader>/ :bn<CR>
+nnoremap <leader>. :b#<CR>
 nnoremap <leader>q :python3 quitCurrentBuffer()<CR>
 nnoremap <leader>wq :w<CR>:python3 quitCurrentBuffer()<CR>
+nnoremap !<leader>q :python3 quitCurrentBuffer(force=True)<CR>
+
+" Open the grepper
+nnoremap <leader>gg :Grepper<CR>
 
 " I'm not sure what ctrl-W in insert mode is supposed to do, but I often
 " accidently forget I'm in insert mode, want to switch to another window and

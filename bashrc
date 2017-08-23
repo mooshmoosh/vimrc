@@ -31,11 +31,17 @@ function vim() {
     fi
 }
 
-alias thumb="python3 -c 'print(\"\U0001F44D\")' | xclip -in -selection \"clipboard\""
-alias panda="python3 -c 'print(\"\U0001F43C\")' | xclip -in -selection \"clipboard\""
-
 PATH=$PATH:/home/wmischlewski/gitrepos/hackerscripts
 PATH=$PATH:/home/wmischlewski/large-bin
 
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre/
 
+function wget() {
+    wget --ca-certificate=/home/wmischlewski/cert_backups/fortigate/bundle.crt $@
+}
+
+alias  thumb="python3 -c 'print(\"\U0001F44D\")' | xclip -in -selection \"clipboard\""
+alias  panda="python3 -c 'print(\"\U0001F43C\")' | xclip -in -selection \"clipboard\""
+alias bottle="python3 -c 'print(\"\U0001F37E\")' | xclip -in -selection \"clipboard\""
+
+alias clip="xclip -in -selection \"clipboard\""
