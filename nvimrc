@@ -260,6 +260,7 @@ inoremap kj <ESC>
 nnoremap <leader>, :bN<CR>
 nnoremap <leader>/ :bn<CR>
 nnoremap <leader>q :python3 quitCurrentBuffer()<CR>
+nnoremap <leader>wq :w<CR>:python3 quitCurrentBuffer()<CR>
 
 " I'm not sure what ctrl-W in insert mode is supposed to do, but I often
 " accidently forget I'm in insert mode, want to switch to another window and
@@ -441,6 +442,8 @@ def runCheckMemoryTests():
     filetype = getFileType()
     if filetype in ['cpp', 'hpp', 'c', 'h']:
         runShellCommandIntoNewBuffer("make check_memory")
+        return True
+    return False
 
 def createTestFunction():
     filetype = getFileType()
@@ -626,6 +629,13 @@ def indentTill():
             newLines.append(line[4:])
     setLines(getRow(), finalLineNumber, newLines)
 
+# This decorator makes any function magically asyncronous
+def vim_async(inner_function):
+    def wrapper(*args, **kwargs):
+        return vim.async_call(inner_function, *args, **kwargs)
+    return wrapper
+
+@vim_async
 def executeCurrentFileAsScript():
     filetype = getFileType()
     if filetype == "html":
@@ -633,6 +643,7 @@ def executeCurrentFileAsScript():
     else:
         vim.command("!" + getFilename())
 
+@vim_async
 def runShellCommandIntoNewBuffer(command):
     with subprocess.Popen([command], stderr=subprocess.PIPE, stdout=subprocess.PIPE, shell=True) as p:
         result = p.stdout.read().decode()
