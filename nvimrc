@@ -348,9 +348,9 @@ def runPythonUnitTests():
     if filetype == 'py':
         if os.path.isfile("manage.py"):
             # If manage.py exists in the current directory, then this is a django project
-            vim.command("!python3 manage.py test")
+            runShellCommandIntoNewBuffer("python3 manage.py test")
         else:
-            vim.command("!python3 -m unittest discover")
+            runShellCommandIntoNewBuffer("python3 -m unittest discover")
         return True
     return False
 RunUnitTestListeners.append(runPythonUnitTests)
