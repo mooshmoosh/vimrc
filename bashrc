@@ -33,6 +33,7 @@ function vim() {
 
 PATH=$PATH:/home/wmischlewski/gitrepos/hackerscripts
 PATH=$PATH:/home/wmischlewski/large-bin
+PATH=$PATH:/home/wmischlewski/bin
 
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre/
 

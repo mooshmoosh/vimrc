@@ -256,6 +256,19 @@ def quitCurrentBuffer(force=False):
         except:
             print("This buffer has been modified!")
 
+def findBufferWithName(name):
+    for buf in vim.buffers:
+        if buf.name.startswith(name):
+            return buf
+
+
+def switchToBufferWithName(name, fallback=None):
+    buffer_object = findBufferWithName(name)
+    if buffer_object is None:
+        vim.command("edit " + str(fallback))
+    else:
+        vim.command("b" + str(buffer_object.number))
+
 endpython3
 "}}}
 "simple remappings
@@ -308,7 +321,8 @@ nnoremap ; @
 autocmd BufWritePre * :silent! %s/\(\.*\)\s\+$/\1
 
 " <leader>tt opens a terminal.
-nnoremap <leader>tt :edit term://bash<CR>A
+nnoremap <leader>tt :python3 switchToBufferWithName('term:', 'term:///bin/bash')<CR>A
+nnoremap <leader>tn :edit term://bash<CR>A
 " Similarly, but split window
 nnoremap <leader>tw :vsplit term://bash<CR>
 "ctrl kj in terminal should take me to normal mode
