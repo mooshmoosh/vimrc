@@ -256,14 +256,15 @@ def quitCurrentBuffer(force=False):
         except:
             print("This buffer has been modified!")
 
-def findBufferWithName(name):
+def findBufferWithName(starts_with, contains=None):
     for buf in vim.buffers:
-        if buf.name.startswith(name):
-            return buf
+        if buf.name.startswith(starts_with):
+            if contains is None or contains in buf.name:
+                return buf
 
 
-def switchToBufferWithName(name, fallback=None):
-    buffer_object = findBufferWithName(name)
+def switchToBufferWithName(name_starts_with, fallback=None, name_contains=None):
+    buffer_object = findBufferWithName(name_starts_with, contains=name_contains)
     if buffer_object is None:
         vim.command("edit " + str(fallback))
     else:
@@ -320,8 +321,10 @@ nnoremap ; @
 "remove all whitespace errors when saving
 autocmd BufWritePre * :silent! %s/\(\.*\)\s\+$/\1
 
-" <leader>tt opens a terminal.
+" <leader>tt opens / switches to a terminal.
 nnoremap <leader>tt :python3 switchToBufferWithName('term:', 'term:///bin/bash')<CR>A
+" <leader>tp opens / switches to a new terminal with python prompt
+nnoremap <leader>tp :python3 switchToBufferWithName('term:', 'term:///usr/bin/python3', '/usr/bin/python3')<CR>A
 nnoremap <leader>tn :edit term://bash<CR>A
 " Similarly, but split window
 nnoremap <leader>tw :vsplit term://bash<CR>
