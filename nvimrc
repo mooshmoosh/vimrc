@@ -41,6 +41,8 @@ Plug 'xni/vim-beautifiers'
 Plug 'mhinz/vim-grepper'
 " Allows organising notes and todos in markdown files that are linked
 Plug 'vimwiki/vimwiki'
+" A calendar plugin for wiki
+Plug 'mattn/calendar-vim'
 " Displays the new/modified lines with git in real time
 Plug 'airblade/vim-gitgutter'
 let g:gitgutter_diff_args = '--patience'
@@ -949,4 +951,7 @@ endpython3
 "Configure personal wiki
 "{{{
 let g:vimwiki_list = [{'path': '~/Documents/Notes/vimwiki', 'syntax': 'markdown', 'ext': '.md'}]
+
+" Open the calendar
+nnoremap <leader>wc :Calendar<CR>
 "}}}
