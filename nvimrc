@@ -695,10 +695,9 @@ def splitWords(text, max_length):
     words = text.split(' ')
     length = len(words[0])
     word_count = 1
-    while length < max_length:
+    while length < max_length and word_count < len(words):
         length += len(words[word_count]) + 1
         word_count += 1
-    word_count -= 1
     result = ' '.join(words[:word_count])
     return result, text[len(result):].strip()
 
@@ -710,10 +709,18 @@ def splitCurrentLineIntoParagraphs():
     if remaining_text.startswith('// '):
         remaining_text = remaining_text[3:]
         indent += "// "
+    elif remaining_text.startswith('* '):
+        # The text should be indented assuming the bullet point isn't there
+        # But the first line should still have the bullet point
+        remaining_text = remaining_text[2:]
+        new_line, remaining_text = splitWords(remaining_text, 72 - len(indent))
+        new_lines.append(indent + "* " + new_line)
+        indent += "  "
     while len(remaining_text) + len(indent) > 72:
         new_line, remaining_text = splitWords(remaining_text, 72 - len(indent))
         new_lines.append(indent + new_line)
-    new_lines.append(indent + remaining_text)
+    if len(remaining_text.strip()) > 0:
+        new_lines.append(indent + remaining_text)
     deleteLine(current_line_number)
     insertLines(current_line_number, new_lines)
 
