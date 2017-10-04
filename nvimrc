@@ -18,7 +18,6 @@ filetype plugin on
 let mapleader=","
 hi MatchParen ctermbg=1 guibg=lightblue
 let $IN_NVIM_TERMINAL="YES"
-
 "}}}
 " vim-plug setup
 "{{{
@@ -322,7 +321,7 @@ nnoremap ; @
 autocmd BufWritePre * :silent! %s/\(\.*\)\s\+$/\1
 
 " <leader>tt opens / switches to a terminal.
-nnoremap <leader>tt :python3 switchToBufferWithName('term:', 'term:///bin/bash')<CR>A
+nnoremap <leader>tt :python3 switchToBufferWithName('term:', 'term:///bin/bash', '/bin/bash')<CR>A
 " <leader>tp opens / switches to a new terminal with python prompt
 nnoremap <leader>tp :python3 switchToBufferWithName('term:', 'term:///usr/bin/python3', '/usr/bin/python3')<CR>A
 nnoremap <leader>tn :edit term://bash<CR>A
