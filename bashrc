@@ -46,3 +46,6 @@ alias  panda="python3 -c 'print(\"\U0001F43C\")' | xclip -in -selection \"clipbo
 alias bottle="python3 -c 'print(\"\U0001F37E\")' | xclip -in -selection \"clipboard\""
 
 alias clip="xclip -in -selection \"clipboard\""
+
+export VISUAL=nvim
+export EDITOR="$VISUAL"
