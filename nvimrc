@@ -70,6 +70,8 @@ Plug 'marcweber/vim-addon-mw-utils'
 Plug 'tomtom/tlib_vim'
 Plug 'garbas/vim-snipmate'
 Plug 'jeetsukumaran/vim-buffergator'
+Plug 'tpope/vim-jdaddy'
+
 call plug#end()
 "}}}
 "Python set up. Mainly my wrapper around Vim API

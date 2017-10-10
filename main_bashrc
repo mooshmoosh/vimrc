@@ -11,10 +11,6 @@ shopt -s checkwinsize
 
 alias vimdiff='nvim -d'
 
-alias chd='chaido done'
-alias ch='chaido'
-alias chn='chaido new'
-
 alias sql='q -O -T -d, -H'
 
 if [ "$IN_NVIM_TERMINAL" != "YES" ]
@@ -30,16 +26,14 @@ function vim() {
         nvr --remote $@
     fi
 }
-
-PATH=$PATH:/home/wmischlewski/gitrepos/hackerscripts
-PATH=$PATH:/home/wmischlewski/large-bin
-PATH=$PATH:/home/wmischlewski/bin
-
-export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre/
-
-function wget() {
-    wget --ca-certificate=/home/wmischlewski/cert_backups/fortigate/bundle.crt $@
-}
+if [ "$ENVIRONMENT_COMPUTER" == "WORK" ]
+then
+    # These paths are only relevent at work
+    PATH=$PATH:/home/wmischlewski/gitrepos/hackerscripts
+    PATH=$PATH:/home/wmischlewski/large-bin
+    PATH=$PATH:/home/wmischlewski/bin
+    export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre/
+fi
 
 alias  thumb="python3 -c 'print(\"\U0001F44D\")' | xclip -in -selection \"clipboard\""
 alias  panda="python3 -c 'print(\"\U0001F43C\")' | xclip -in -selection \"clipboard\""
@@ -49,3 +43,5 @@ alias clip="xclip -in -selection \"clipboard\""
 
 export VISUAL=nvim
 export EDITOR="$VISUAL"
+
+source $VIMRC_DIRECTORY/git-completion.bash
