@@ -69,6 +69,7 @@ let g:codi#interpreters = {
 Plug 'marcweber/vim-addon-mw-utils'
 Plug 'tomtom/tlib_vim'
 Plug 'garbas/vim-snipmate'
+Plug 'jeetsukumaran/vim-buffergator'
 call plug#end()
 "}}}
 "Python set up. Mainly my wrapper around Vim API
@@ -348,7 +349,7 @@ nnoremap <leader>oo :ls<CR>:b
 nnoremap <leader>on :enew<CR>
 
 "open the directory tree
-nnoremap <leader>nt :NERDTree<CR>
+nnoremap <leader>nt :NERDTreeToggle<CR>
 
 "open a file from the current directory in a splitwindow
 nnoremap <leader>oh :vsplit %:p:h/
