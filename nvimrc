@@ -70,6 +70,8 @@ Plug 'marcweber/vim-addon-mw-utils'
 Plug 'tomtom/tlib_vim'
 Plug 'garbas/vim-snipmate'
 Plug 'jeetsukumaran/vim-buffergator'
+" <leader>b should open/close the buffer menu, not just open it
+nnoremap <leader>b :BuffergatorToggle<CR>
 Plug 'tpope/vim-jdaddy'
 
 call plug#end()
@@ -456,7 +458,19 @@ def createPythonPrintLine():
     setCursor(getRow(), len(indent))
 createPrintLineListeners.append(createPythonPrintLine)
 
+def generateCTagsFile():
+    python_files = []
+    for root, directories, files in os.walk('.'):
+        for filename in files:
+            if filename.endswith('.py'):
+                python_files.append(os.path.join(root, filename))
+    pipeStringToCommand("\n".join(python_files), ['/usr/bin/ctags', '-f', 'tags', '-L', '-'])
+
 endpython3
+
+" generate a ctags file for the python files in the current directory
+nnoremap <leader>cg :python3 generateCTagsFile()<CR>
+
 "}}}
 "Remappings specifically for C code
 "{{{
@@ -695,6 +709,13 @@ def executeCurrentScriptIntoNewBuffer():
         result += "\n"
         result += p.stderr.read().decode()
     newBuffer(initial_text=result)
+
+def pipeStringToCommand(data, command):
+    if isinstance(command, str):
+        command = [command]
+    with subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, stdout=subprocess.PIPE) as p:
+        result = p.communicate(input=data.encode())[0].decode()
+    return result
 
 def splitWords(text, max_length):
     words = text.split(' ')
