@@ -464,7 +464,7 @@ def generateCTagsFile():
         for filename in files:
             if filename.endswith('.py'):
                 python_files.append(os.path.join(root, filename))
-    pipeStringToCommand("\n".join(python_files), ['/usr/bin/ctags', '-f', 'tags', '-L', '-'])
+    pipeStringToCommand("\n".join(python_files), ['/usr/bin/ctags', '--python-kinds=-i', '-f', 'tags', '-L', '-'])
 
 endpython3
 
