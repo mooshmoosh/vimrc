@@ -268,13 +268,19 @@ def findBufferWithName(starts_with, contains=None):
             if contains is None or contains in buf.name:
                 return buf
 
-
 def switchToBufferWithName(name_starts_with, fallback=None, name_contains=None):
     buffer_object = findBufferWithName(name_starts_with, contains=name_contains)
     if buffer_object is None:
         vim.command("edit " + str(fallback))
     else:
         vim.command("b" + str(buffer_object.number))
+
+def launchFirefoxAndSearch():
+    search_term = getInput("Search duck duck go for: ")
+    search_url = search_term.replace(' ', '+')
+    if search_url == '':
+        return
+    vim.command('!firefox "https://duckduckgo.com/?q=' + search_url + '"')
 
 endpython3
 "}}}
@@ -338,6 +344,8 @@ nnoremap <leader>tw :vsplit term://bash<CR>
 tnoremap <C-k><C-j> <C-\><C-n>
 "Ctrl W should still work to move windows in terminal mode
 tnoremap <C-w> <C-\><C-n><C-w>
+
+nnoremap <leader>fs :python3 launchFirefoxAndSearch()<CR>
 
 "}}}
 "Organisational mappings
