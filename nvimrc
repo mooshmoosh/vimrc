@@ -743,6 +743,9 @@ def splitCurrentLineIntoParagraphs():
     if remaining_text.startswith('// '):
         remaining_text = remaining_text[3:]
         indent += "// "
+    elif remaining_text.startswith('# '):
+        remaining_text = remaining_text[2:]
+        indent += "# "
     elif remaining_text.startswith('* '):
         # The text should be indented assuming the bullet point isn't there
         # But the first line should still have the bullet point
