@@ -347,6 +347,10 @@ tnoremap <C-w> <C-\><C-n><C-w>
 
 nnoremap <leader>fs :python3 launchFirefoxAndSearch()<CR>
 
+" It is really annoying to have spelling checker on all the time, but I like
+" to use it occasionally.
+nnoremap <leader>ss :set invspell<CR>
+
 "}}}
 "Organisational mappings
 "{{{
@@ -400,10 +404,6 @@ def addPythonImport():
         insertLine(importSectionBeginning, "from " + parentModuleName + " import " + moduleName)
     else:
         insertLine(importSectionBeginning, "import " + moduleName)
-    try:
-        setCursor(getRow() + 1, getCol())
-    except:
-        setCursor(getRow(), getCol())
     return True
 addIncludeListeners.append(addPythonImport)
 
