@@ -467,12 +467,21 @@ def createPythonPrintLine():
 createPrintLineListeners.append(createPythonPrintLine)
 
 def generateCTagsFile():
-    python_files = []
+    filetype = getFileType()
+    if filetype == 'py':
+        extensions = ['.py']
+        command = ['/usr/bin/ctags', '--python-kinds=-i', '-f', 'tags', '-L', '-']
+    elif filetype in ['c', 'h']:
+        extensions = ['.h', '.c']
+        command = ['/usr/bin/ctags', '-f', 'tags', '-L', '-']
+    sourcefiles = []
     for root, directories, files in os.walk('.'):
         for filename in files:
-            if filename.endswith('.py'):
-                python_files.append(os.path.join(root, filename))
-    pipeStringToCommand("\n".join(python_files), ['/usr/bin/ctags', '-f', 'tags', '-L', '-'])
+            for extension in extensions:
+                if filename.endswith(extension):
+                    sourcefiles.append(os.path.join(root, filename))
+                    break
+    pipeStringToCommand("\n".join(sourcefiles), command)
 
 endpython3
 
