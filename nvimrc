@@ -233,29 +233,40 @@ def getInput(message = "? "):
     return vim.eval("python3_user_input")
 
 def NerdtreeIsOpen():
+    if "NERD_tree" in vim.current.buffer.name:
+        # This only checks if NERDtree is open in a window somewhere else
+        # in the current tab. If the current window is the nerdtree one then
+        # nerd tree is not open in the sense of being in another window
+        return False
     buffer_names = [window.buffer.name for window in vim.current.tabpage.windows]
     for name in buffer_names:
         if "NERD_tree" in name:
             return True
     return False
 
+def switchToAlternativeOrNextBuffer():
+    try:
+        vim.command(':b#')
+    except:
+        vim.command(':bnext')
+
 def quitCurrentBuffer(force=False):
     filename = getFilename()
+    current_buffer = str(vim.current.window.buffer.number)
     if filename == "" or filename.startswith('term://'):
-        quit_command = ":bdelete!"
+        switchToAlternativeOrNextBuffer()
+        quit_command = ":bdelete! " + current_buffer
     else:
         if force:
-            quit_command = ":bdelete!"
+            switchToAlternativeOrNextBuffer()
+            quit_command = ":bdelete! " + current_buffer
         else:
-            quit_command = ":bdelete"
+            switchToAlternativeOrNextBuffer()
+            quit_command = ":bdelete " + current_buffer
     window_count = currentTabWindowCount()
 
-    if window_count == 2 and NerdtreeIsOpen():
-            current_buffer = vim.current.window.buffer.number
-            vim.command(':bnext')
-            vim.command(quit_command + ' ' + str(current_buffer))
-    elif window_count > 1:
-            vim.command(':quit')
+    if window_count > 1 and not NerdtreeIsOpen():
+        vim.command(':quit')
     else:
         try:
             vim.command(quit_command)
@@ -395,6 +406,10 @@ def addPythonImport():
     if filetype != 'py' and getLine(0) != "#!/usr/bin/python3":
         return False
     moduleName = getInput("Name of module: ")
+    if moduleName.strip() == "":
+        # We don't do anything, but we've still handled the request to add
+        # an import, so we return True
+        return True
     importSectionBeginning = findFirstLineStartingWith(['import', 'from'])
     if ' from ' in moduleName:
         fromIndex = moduleName.index(' from ')
