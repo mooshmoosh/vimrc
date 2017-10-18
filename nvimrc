@@ -254,23 +254,23 @@ def quitCurrentBuffer(force=False):
     filename = getFilename()
     current_buffer = str(vim.current.window.buffer.number)
     if filename == "" or filename.startswith('term://'):
-        switchToAlternativeOrNextBuffer()
         quit_command = ":bdelete! " + current_buffer
     else:
         if force:
-            switchToAlternativeOrNextBuffer()
             quit_command = ":bdelete! " + current_buffer
         else:
-            switchToAlternativeOrNextBuffer()
             quit_command = ":bdelete " + current_buffer
     window_count = currentTabWindowCount()
-
     if window_count > 1 and not NerdtreeIsOpen():
+        vim.command(':quit')
+    elif window_count > 2:
         vim.command(':quit')
     else:
         try:
+            switchToAlternativeOrNextBuffer()
             vim.command(quit_command)
         except:
+            vim.command(':b#')
             print("This buffer has been modified!")
 
 def findBufferWithName(starts_with, contains=None):
