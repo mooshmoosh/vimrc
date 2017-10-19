@@ -256,7 +256,12 @@ def quitCurrentBuffer(force=False):
     if window_count == 2 and NerdtreeIsOpen():
             current_buffer = vim.current.window.buffer.number
             vim.command(':bnext')
-            vim.command(quit_command + ' ' + str(current_buffer))
+            try:
+                vim.command(quit_command + ' ' + str(current_buffer))
+            except:
+                vim.command(':bNext')
+                print("This buffer has been modified!")
+
             vim.command(':b' + str(alt_buffer))
     elif window_count > 1:
             vim.command(':quit')
