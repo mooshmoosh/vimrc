@@ -28,6 +28,7 @@ Plug 'scrooloose/nerdtree'
 " fuzzy searching
 Plug 'ctrlpvim/ctrlp.vim'
 let g:ctrlp_user_command = ['.git/', 'git --git-dir=%s/.git ls-files -oc --exclude-standard']
+let g:ctrlp_follow_symlinks = 1
 " Highligh the corresponding html tag
 Plug 'valloric/MatchTagAlways'
 " This lets leader% jump to the corresponding tag, similarly to how % works on
@@ -239,10 +240,29 @@ def NerdtreeIsOpen():
             return True
     return False
 
+def getAltBufferNumber():
+    current_buffer_number = vim.current.buffer.number
+    vim.command(':b#')
+    try:
+        result = vim.current.buffer.number
+    except:
+        vim.command(':b#')
+        return None
+    if result == current_buffer_number:
+        return None
+    return result
+
+def makePreviousBufferAltBuffer():
+    vim.command(':bprevious')
+    vim.command(':bnext')
+
+def switchToBufferNumber(number):
+    if number is None:
+        return
+    vim.command("b" + str(number))
+
 def quitCurrentBuffer(force=False):
-    vim.command(':b#')
-    alt_buffer = vim.current.window.buffer.number
-    vim.command(':b#')
+    alt_buffer = getAltBufferNumber()
     filename = getFilename()
     if filename == "" or filename.startswith('term://'):
         quit_command = ":bdelete!"
@@ -252,26 +272,27 @@ def quitCurrentBuffer(force=False):
         else:
             quit_command = ":bdelete"
     window_count = currentTabWindowCount()
-
-    if window_count == 2 and NerdtreeIsOpen():
-            current_buffer = vim.current.window.buffer.number
-            vim.command(':bnext')
-            try:
-                vim.command(quit_command + ' ' + str(current_buffer))
-            except:
-                vim.command(':bNext')
-                print("This buffer has been modified!")
-
-            vim.command(':b' + str(alt_buffer))
+    makePreviousBufferAltBuffer()
+    if "NERD_tree" in vim.current.buffer.name:
+        vim.command(":bdelete!")
+        switchToBufferNumber(alt_buffer)
+    elif window_count == 2 and NerdtreeIsOpen():
+        # switch to the alt buffer before closing. This avoids closing the
+        # multiple windows which we want if nerdtree is open.
+        current_buffer = vim.current.window.buffer.number
+        switchToBufferNumber(alt_buffer)
+        try:
+            vim.command(quit_command + ' ' + str(current_buffer))
+        except:
+            print("This buffer has been modified!")
     elif window_count > 1:
-            vim.command(':quit')
-            vim.command(':b' + str(alt_buffer))
+        vim.command(':quit')
     else:
         try:
             vim.command(quit_command)
-            vim.command(':b' + str(alt_buffer))
         except:
             print("This buffer has been modified!")
+        switchToBufferNumber(alt_buffer)
 
 def findBufferWithName(starts_with, contains=None):
     for buf in vim.buffers:
