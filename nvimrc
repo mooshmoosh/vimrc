@@ -261,8 +261,48 @@ def switchToBufferNumber(number):
         return
     vim.command("b" + str(number))
 
+def deleteCurrentBuffer(force=False):
+    # In addition to the below this function should also switch to the alternate
+    # buffer The logic must be:
+    # get the current buffer number
+    # switch to the alternate buffer
+    # get its number
+    # if the two numbers are different
+    #
+    # otherwise
+    #     go to the previous buffer
+    #
+
+    filename = getFilename()
+    if filename == "" or filename.startswith('term://'):
+        vim.command(":bdelete!")
+    else:
+        try:
+            vim.command(":bdelete")
+        except:
+            print("This buffer has been modified!")
+
 def quitCurrentBuffer(force=False):
-    alt_buffer = getAltBufferNumber()
+    # This one has become more complicated than I would like. The desired behaviour is:
+    # if multiple windows are open
+    #     if the current window is nerd tree
+    #         :q
+    #     elif the current window is buffergator
+    #         :q
+    #     elif there are more than 3 windows open
+    #         :q
+    #     elif nerd tree and buffer gator are open
+    #         deleteCurrentBuffer(force)
+    #     elif there are 3 windows open:
+    #         :q
+    #     elif nerd tree is one of the open windows
+    #         deleteCurrentBuffer(force)
+    #     elif buffergator is one of the open windows
+    #         deleteCurrentBuffer(force)
+    #     else:
+    #         :q
+    # else:
+    #     deleteCurrentBuffer(force)
     filename = getFilename()
     if filename == "" or filename.startswith('term://'):
         quit_command = ":bdelete!"
@@ -271,28 +311,10 @@ def quitCurrentBuffer(force=False):
             quit_command = ":bdelete!"
         else:
             quit_command = ":bdelete"
-    window_count = currentTabWindowCount()
-    makePreviousBufferAltBuffer()
-    if "NERD_tree" in vim.current.buffer.name:
-        vim.command(":bdelete!")
-        switchToBufferNumber(alt_buffer)
-    elif window_count == 2 and NerdtreeIsOpen():
-        # switch to the alt buffer before closing. This avoids closing the
-        # multiple windows which we want if nerdtree is open.
-        current_buffer = vim.current.window.buffer.number
-        switchToBufferNumber(alt_buffer)
-        try:
-            vim.command(quit_command + ' ' + str(current_buffer))
-        except:
-            print("This buffer has been modified!")
-    elif window_count > 1:
-        vim.command(':quit')
-    else:
-        try:
-            vim.command(quit_command)
-        except:
-            print("This buffer has been modified!")
-        switchToBufferNumber(alt_buffer)
+    try:
+        vim.command(quit_command)
+    except:
+        print("This buffer has been modified!")
 
 def findBufferWithName(starts_with, contains=None):
     for buf in vim.buffers:
@@ -318,6 +340,10 @@ endpython3
 "}}}
 "simple remappings
 "{{{
+
+" I use expand tab, but occasionally want to use real tabs. The following
+" makes shift tab insert a tab character
+inoremap <S-Tab> <C-V><Tab>
 
 "Navigation shortcuts
 inoremap kj <ESC>
@@ -426,7 +452,11 @@ def addPythonImport():
     filetype = getFileType()
     if filetype != 'py' and getLine(0) != "#!/usr/bin/python3":
         return False
-    moduleName = getInput("Name of module: ")
+    moduleName = getInput("Name of module: ").strip()
+    if moduleName == '':
+        # if no module name was supplied do nothing, but indicate we've handled
+        # the event.
+        return True
     importSectionBeginning = findFirstLineStartingWith(['import', 'from'])
     if ' from ' in moduleName:
         fromIndex = moduleName.index(' from ')
@@ -506,6 +536,8 @@ def generateCTagsFile():
     elif filetype in ['c', 'h']:
         extensions = ['.h', '.c']
         command = ['/usr/bin/ctags', '-f', 'tags', '-L', '-']
+    else:
+        return
     sourcefiles = []
     for root, directories, files in os.walk('.', followlinks=True):
         for filename in files:
