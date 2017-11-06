@@ -240,16 +240,31 @@ def NerdtreeIsOpen():
             return True
     return False
 
+def windowsWithBuffersNameAreOpen(names):
+    buffers_not_open = set(names)
+    for buffer_name in (window.buffer.name for window in vim.current.tabpage.windows):
+        for name in names:
+            if name in buffer_name:
+                try:
+                    buffers_not_open.remove(name)
+                except:
+                    pass
+    return len(buffers_not_open) == 0
+
 def getAltBufferNumber():
     current_buffer_number = vim.current.buffer.number
     vim.command(':b#')
     try:
         result = vim.current.buffer.number
     except:
-        vim.command(':b#')
-        return None
-    if result == current_buffer_number:
-        return None
+        result = current_buffer_number
+    vim.command(':b#')
+    return result
+
+def getPreviousBufferNumber():
+    vim.command(':bNext')
+    result = vim.current.buffer.number
+    vim.command(':bnext')
     return result
 
 def makePreviousBufferAltBuffer():
@@ -262,59 +277,59 @@ def switchToBufferNumber(number):
     vim.command("b" + str(number))
 
 def deleteCurrentBuffer(force=False):
-    # In addition to the below this function should also switch to the alternate
-    # buffer The logic must be:
-    # get the current buffer number
-    # switch to the alternate buffer
-    # get its number
-    # if the two numbers are different
-    #
-    # otherwise
-    #     go to the previous buffer
-    #
+    current_buffer_number = vim.current.buffer.number
+    alt_buffer_number = getAltBufferNumber()
+    previous_buffer_number = getPreviousBufferNumber()
+    if previous_buffer_number == current_buffer_number:
+        if force:
+            vim.command(':q!')
+        else:
+            try:
+                vim.command(':q')
+            except:
+                print("This buffer has been modified!")
+        return None
+    elif alt_buffer_number == current_buffer_number:
+        alt_buffer_number = previous_buffer_number
 
+    switchToBufferNumber(alt_buffer_number)
     filename = getFilename()
-    if filename == "" or filename.startswith('term://'):
-        vim.command(":bdelete!")
+    if filename == "" or filename.startswith('term://') or force:
+        vim.command(":bdelete! " + str(current_buffer_number))
     else:
         try:
-            vim.command(":bdelete")
+            vim.command(":bdelete " + str(current_buffer_number))
         except:
+            switchToBufferNumber(current_buffer_number)
             print("This buffer has been modified!")
 
 def quitCurrentBuffer(force=False):
-    # This one has become more complicated than I would like. The desired behaviour is:
-    # if multiple windows are open
-    #     if the current window is nerd tree
-    #         :q
-    #     elif the current window is buffergator
-    #         :q
-    #     elif there are more than 3 windows open
-    #         :q
-    #     elif nerd tree and buffer gator are open
-    #         deleteCurrentBuffer(force)
-    #     elif there are 3 windows open:
-    #         :q
-    #     elif nerd tree is one of the open windows
-    #         deleteCurrentBuffer(force)
-    #     elif buffergator is one of the open windows
-    #         deleteCurrentBuffer(force)
-    #     else:
-    #         :q
-    # else:
-    #     deleteCurrentBuffer(force)
-    filename = getFilename()
-    if filename == "" or filename.startswith('term://'):
-        quit_command = ":bdelete!"
-    else:
-        if force:
-            quit_command = ":bdelete!"
+    if len(vim.windows) > 1:
+        if 'NERD_tree' in vim.current.buffer.name:
+            print("""if 'NERD_tree' in vim.current.buffer.name:""")
+            vim.command(':q')
+        elif '[[buffergator' in vim.current.buffer.name:
+            print("""elif '[[buffergator' in vim.current.buffer.name:""")
+            vim.command(':q')
+        elif len(vim.windows) > 3:
+            print("""elif len(vim.windows) > 3:""")
+            vim.command(':q')
+        elif windowsWithBuffersNameAreOpen(['NERD_tree', '[[buffergator']):
+            print("""elif windowsWithBuffersNameAreOpen(['NERD_tree', '[[buffergator']):""")
+            deleteCurrentBuffer(force)
+        elif len(vim.windows) == 3:
+            print("""elif len(vim.windows) == 3:""")
+            vim.command(':q')
+        elif windowsWithBuffersNameAreOpen(['NERD_tree']):
+            print("""elif windowsWithBuffersNameAreOpen(['NERD_tree']):""")
+            deleteCurrentBuffer(force)
+        elif windowsWithBuffersNameAreOpen(['[[buffergator']):
+            print("""elif windowsWithBuffersNameAreOpen(['[[buffergator']):""")
+            deleteCurrentBuffer(force)
         else:
-            quit_command = ":bdelete"
-    try:
-        vim.command(quit_command)
-    except:
-        print("This buffer has been modified!")
+            vim.command(':q')
+    else:
+        deleteCurrentBuffer(force)
 
 def findBufferWithName(starts_with, contains=None):
     for buf in vim.buffers:
