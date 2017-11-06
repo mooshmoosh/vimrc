@@ -280,6 +280,7 @@ def deleteCurrentBuffer(force=False):
     current_buffer_number = vim.current.buffer.number
     alt_buffer_number = getAltBufferNumber()
     previous_buffer_number = getPreviousBufferNumber()
+    filename = getFilename()
     if previous_buffer_number == current_buffer_number:
         if force:
             vim.command(':q!')
@@ -293,7 +294,6 @@ def deleteCurrentBuffer(force=False):
         alt_buffer_number = previous_buffer_number
 
     switchToBufferNumber(alt_buffer_number)
-    filename = getFilename()
     if filename == "" or filename.startswith('term://') or force:
         vim.command(":bdelete! " + str(current_buffer_number))
     else:
