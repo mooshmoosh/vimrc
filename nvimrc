@@ -306,25 +306,18 @@ def deleteCurrentBuffer(force=False):
 def quitCurrentBuffer(force=False):
     if len(vim.windows) > 1:
         if 'NERD_tree' in vim.current.buffer.name:
-            print("""if 'NERD_tree' in vim.current.buffer.name:""")
             vim.command(':q')
         elif '[[buffergator' in vim.current.buffer.name:
-            print("""elif '[[buffergator' in vim.current.buffer.name:""")
             vim.command(':q')
         elif len(vim.windows) > 3:
-            print("""elif len(vim.windows) > 3:""")
             vim.command(':q')
         elif windowsWithBuffersNameAreOpen(['NERD_tree', '[[buffergator']):
-            print("""elif windowsWithBuffersNameAreOpen(['NERD_tree', '[[buffergator']):""")
             deleteCurrentBuffer(force)
         elif len(vim.windows) == 3:
-            print("""elif len(vim.windows) == 3:""")
             vim.command(':q')
         elif windowsWithBuffersNameAreOpen(['NERD_tree']):
-            print("""elif windowsWithBuffersNameAreOpen(['NERD_tree']):""")
             deleteCurrentBuffer(force)
         elif windowsWithBuffersNameAreOpen(['[[buffergator']):
-            print("""elif windowsWithBuffersNameAreOpen(['[[buffergator']):""")
             deleteCurrentBuffer(force)
         else:
             vim.command(':q')
