@@ -253,12 +253,12 @@ def windowsWithBuffersNameAreOpen(names):
 
 def getAltBufferNumber():
     current_buffer_number = vim.current.buffer.number
-    vim.command(':b#')
     try:
+        vim.command(':b#')
         result = vim.current.buffer.number
+        vim.command(':b#')
     except:
-        result = current_buffer_number
-    vim.command(':b#')
+        result = getPreviousBufferNumber()
     return result
 
 def getPreviousBufferNumber():
@@ -296,9 +296,16 @@ def deleteCurrentBuffer(force=False):
     switchToBufferNumber(alt_buffer_number)
     if filename == "" or filename.startswith('term://') or force:
         vim.command(":bdelete! " + str(current_buffer_number))
+        # once you delete a buffer and move to the alt buffer, the buffer
+        # you just deleted becomes the new alt buffer, and you can still
+        # switch to it despite it being deleted. To get around this, after
+        # deleting a buffer, we make the previous buffer the alt buffer
+        makePreviousBufferAltBuffer()
     else:
         try:
             vim.command(":bdelete " + str(current_buffer_number))
+            # see above
+            makePreviousBufferAltBuffer()
         except:
             switchToBufferNumber(current_buffer_number)
             print("This buffer has been modified!")
