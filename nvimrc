@@ -397,6 +397,9 @@ vnoremap p "+p
 nnoremap P "+P
 vnoremap P "+P
 
+" Make // in visual mode search for the text I've selected
+vnoremap // "qy/<C-R>q<CR>
+
 "Shortcuts for opening and loading vimrc
 nnoremap <leader>ve :edit ~/.config/nvim/init.vim<CR>
 nnoremap <leader>vs :source ~/.config/nvim/init.vim<CR>
