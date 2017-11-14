@@ -74,6 +74,8 @@ Plug 'jeetsukumaran/vim-buffergator'
 " <leader>b should open/close the buffer menu, not just open it
 nnoremap <leader>b :BuffergatorToggle<CR>
 Plug 'tpope/vim-jdaddy'
+Plug 'idanarye/vim-vebugger'
+Plug 'Shougo/vimproc.vim', {'do' : 'make'}
 
 call plug#end()
 "}}}
@@ -796,6 +798,9 @@ def runShellCommandIntoNewBuffer(command):
         result += p.stderr.read().decode()
     newBuffer(initial_text=result)
 
+def launchCurrentFileInDebugger():
+    vim.command(":VBGstartPDB3 " + getFilename())
+
 def executeCurrentScriptIntoNewBuffer():
     if getLine(0).startswith('#!'):
         # get the environment from shebang
@@ -1051,7 +1056,10 @@ autocmd FileType csv :%CSVArrangeColumn
 "{{{
 " This lets me use python functions like editor commands so they don't need to
 " start with a capital letter.
-nnoremap <leader>pr :python3 executePythonFunction()<CR>
+nnoremap <leader>pe :python3 executePythonFunction()<CR>
+
+" same as <leader>r but launches the python script with the debugger
+nnoremap <leader>pr :python3 launchCurrentFileInDebugger()<CR>
 
 python3 << endpython3
 def executePythonFunction():
@@ -1081,3 +1089,5 @@ let g:vimwiki_list = [{'path': '~/Documents/Notes/vimwiki', 'syntax': 'markdown'
 " Open the calendar
 nnoremap <leader>wc :Calendar<CR>
 "}}}
+" Configure vebugger
+let g:vebugger_leader='<leader>d'
