@@ -799,7 +799,11 @@ def runShellCommandIntoNewBuffer(command):
     newBuffer(initial_text=result)
 
 def launchCurrentFileInDebugger():
-    vim.command(":VBGstartPDB3 " + getFilename())
+    if os.path.isfile("manage.py"):
+        # if we're in a django project, then launch the development server with the debugger
+        vim.command(":VBGstartPDB3 manage.py runserver")
+    else:
+        vim.command(":VBGstartPDB3 " + getFilename())
 
 def executeCurrentScriptIntoNewBuffer():
     if getLine(0).startswith('#!'):
