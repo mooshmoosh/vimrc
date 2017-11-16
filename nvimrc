@@ -256,22 +256,22 @@ def windowsWithBuffersNameAreOpen(names):
 def getAltBufferNumber():
     current_buffer_number = vim.current.buffer.number
     try:
-        vim.command(':b#')
+        vim.command('b#')
         result = vim.current.buffer.number
-        vim.command(':b#')
+        vim.command('b#')
     except:
         result = getPreviousBufferNumber()
     return result
 
 def getPreviousBufferNumber():
-    vim.command(':bNext')
+    vim.command('bNext')
     result = vim.current.buffer.number
-    vim.command(':bnext')
+    vim.command('bnext')
     return result
 
 def makePreviousBufferAltBuffer():
-    vim.command(':bprevious')
-    vim.command(':bnext')
+    vim.command('bprevious')
+    vim.command('bnext')
 
 def switchToBufferNumber(number):
     if number is None:
@@ -285,10 +285,10 @@ def deleteCurrentBuffer(force=False):
     filename = getFilename()
     if previous_buffer_number == current_buffer_number:
         if force:
-            vim.command(':q!')
+            vim.command('q!')
         else:
             try:
-                vim.command(':q')
+                vim.command('q')
             except:
                 print("This buffer has been modified!")
         return None
@@ -297,7 +297,7 @@ def deleteCurrentBuffer(force=False):
 
     switchToBufferNumber(alt_buffer_number)
     if filename == "" or filename.startswith('term://') or force:
-        vim.command(":bdelete! " + str(current_buffer_number))
+        vim.command("bdelete! " + str(current_buffer_number))
         # once you delete a buffer and move to the alt buffer, the buffer
         # you just deleted becomes the new alt buffer, and you can still
         # switch to it despite it being deleted. To get around this, after
@@ -305,7 +305,7 @@ def deleteCurrentBuffer(force=False):
         makePreviousBufferAltBuffer()
     else:
         try:
-            vim.command(":bdelete " + str(current_buffer_number))
+            vim.command("bdelete " + str(current_buffer_number))
             # see above
             makePreviousBufferAltBuffer()
         except:
@@ -315,21 +315,21 @@ def deleteCurrentBuffer(force=False):
 def quitCurrentBuffer(force=False):
     if len(vim.windows) > 1:
         if 'NERD_tree' in vim.current.buffer.name:
-            vim.command(':q')
+            vim.command('q')
         elif '[[buffergator' in vim.current.buffer.name:
-            vim.command(':q')
+            vim.command('q')
         elif len(vim.windows) > 3:
-            vim.command(':q')
+            vim.command('q')
         elif windowsWithBuffersNameAreOpen(['NERD_tree', '[[buffergator']):
             deleteCurrentBuffer(force)
         elif len(vim.windows) == 3:
-            vim.command(':q')
+            vim.command('q')
         elif windowsWithBuffersNameAreOpen(['NERD_tree']):
             deleteCurrentBuffer(force)
         elif windowsWithBuffersNameAreOpen(['[[buffergator']):
             deleteCurrentBuffer(force)
         else:
-            vim.command(':q')
+            vim.command('q')
     else:
         deleteCurrentBuffer(force)
 
@@ -456,12 +456,15 @@ nnoremap <leader>od :chdir %:p:h<CR>
 "{{{
 python3 << endpython3
 
-def runPythonUnitTests():
+def runPythonUnitTests(debugger=False):
     filetype = getFileType()
     if filetype == 'py':
         if os.path.isfile("manage.py"):
             # If manage.py exists in the current directory, then this is a django project
-            runShellCommandIntoNewBuffer("python3 manage.py test")
+            if debugger:
+                vim.command("VBGstartPDB3 manage.py test")
+            else:
+                runShellCommandIntoNewBuffer("python3 manage.py test")
         else:
             runShellCommandIntoNewBuffer("python3 -m unittest discover")
         return True
@@ -577,7 +580,7 @@ nnoremap <leader>cg :python3 generateCTagsFile()<CR>
 "{{{
 
 python3 << endpython3
-def runCPPUnitTests():
+def runCPPUnitTests(debugger=False):
     filetype = getFileType()
     if filetype in ['cpp', 'hpp', 'c', 'h']:
         runShellCommandIntoNewBuffer("make check")
@@ -714,9 +717,9 @@ def replaceSpacesWithUnderscores():
     (indent, line) = splitIndentFromText(getLine(currentLineNumber))
     setLine(currentLineNumber, indent + line.replace(" ", "_"))
 
-def runUnitTests():
+def runUnitTests(debugger=False):
     for runner in RunUnitTestListeners:
-        if runner():
+        if runner(debugger=debugger):
             return
 
 def addToIncludes():
@@ -801,9 +804,9 @@ def runShellCommandIntoNewBuffer(command):
 def launchCurrentFileInDebugger():
     if os.path.isfile("manage.py"):
         # if we're in a django project, then launch the development server with the debugger
-        vim.command(":VBGstartPDB3 manage.py runserver")
+        vim.command("VBGstartPDB3 manage.py runserver")
     else:
-        vim.command(":VBGstartPDB3 " + getFilename())
+        vim.command("VBGstartPDB3 " + getFilename())
 
 def executeCurrentScriptIntoNewBuffer():
     if getLine(0).startswith('#!'):
@@ -866,7 +869,7 @@ endpython3
 " ensure the current line is no more than 72 characters long
 nmap <leader>le :python3 splitCurrentLineIntoParagraphs()<CR>
 
-" <leader>mc (make check) runs the unit tests
+" uleader>mc (make check) runs the unit tests
 nnoremap <leader>mc :w<CR>:python3 runUnitTests()<CR>
 
 " <leader>cu replaces spaces in the current line with underscores
@@ -911,6 +914,9 @@ nmap <leader>fl f,wi<CR><ESC>
 
 "execute the current file as a script
 nnoremap <leader>r :w<CR>:python3 executeCurrentScriptIntoNewBuffer()<CR>
+
+" same as <leader>r but launches the python script with the debugger
+nnoremap <leader>pr :python3 launchCurrentFileInDebugger()<CR>
 "}}}
 "Remapping the enter key
 "{{{
@@ -1051,19 +1057,11 @@ endpython3
 "inoremap <TAB> <C-O>:python3 EmitBeforeTabKeyEvent()<CR><TAB><C-O>:python3 EmitTabKeyEvent()<CR>
 "inoremap <S-TAB> <C-O>:python3 EmitShiftTabKeyEvent()<CR>
 "}}}
-"Remappings for CSV files
-"{{{
-autocmd FileType csv nnoremap o :NewRecord<CR>
-autocmd FileType csv :%CSVArrangeColumn
-"}}}
 "custom commands (python3 functions)
 "{{{
 " This lets me use python functions like editor commands so they don't need to
 " start with a capital letter.
 nnoremap <leader>pe :python3 executePythonFunction()<CR>
-
-" same as <leader>r but launches the python script with the debugger
-nnoremap <leader>pr :python3 launchCurrentFileInDebugger()<CR>
 
 python3 << endpython3
 def executePythonFunction():
@@ -1094,4 +1092,9 @@ let g:vimwiki_list = [{'path': '~/Documents/Notes/vimwiki', 'syntax': 'markdown'
 nnoremap <leader>wc :Calendar<CR>
 "}}}
 " Configure vebugger
+"{{{
 let g:vebugger_leader='<leader>d'
+
+nnoremap <leader>mdc :w<CR>:python3 runUnitTests(debugger=True)<CR>
+"}}}
+
