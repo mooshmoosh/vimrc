@@ -916,7 +916,7 @@ nmap <leader>fl f,wi<CR><ESC>
 nnoremap <leader>r :w<CR>:python3 executeCurrentScriptIntoNewBuffer()<CR>
 
 " same as <leader>r but launches the python script with the debugger
-nnoremap <leader>pr :python3 launchCurrentFileInDebugger()<CR>
+nnoremap <leader>dr :python3 launchCurrentFileInDebugger()<CR>
 "}}}
 "Remapping the enter key
 "{{{
