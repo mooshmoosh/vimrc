@@ -16,6 +16,7 @@ setlocal nospell spelllang=en_au
 set iskeyword=@,48-57,_,192-255,#
 filetype plugin on
 let mapleader=","
+let maplocalleader=" "
 hi MatchParen ctermbg=1 guibg=lightblue
 let $IN_NVIM_TERMINAL="YES"
 "}}}
@@ -76,6 +77,7 @@ nnoremap <leader>b :BuffergatorToggle<CR>
 Plug 'tpope/vim-jdaddy'
 Plug 'idanarye/vim-vebugger'
 Plug 'Shougo/vimproc.vim', {'do' : 'make'}
+Plug 'vim-scripts/todo-txt.vim'
 
 call plug#end()
 "}}}
