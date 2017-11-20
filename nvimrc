@@ -458,17 +458,19 @@ nnoremap <leader>od :chdir %:p:h<CR>
 "{{{
 python3 << endpython3
 
+test_module = ""
 def runPythonUnitTests(debugger=False):
+    global test_module
     filetype = getFileType()
     if filetype == 'py':
         if os.path.isfile("manage.py"):
             # If manage.py exists in the current directory, then this is a django project
             if debugger:
-                vim.command("VBGstartPDB3 manage.py test")
+                vim.command("VBGstartPDB3 manage.py test " + test_module)
             else:
-                runShellCommandIntoNewBuffer("python3 manage.py test")
+                runShellCommandIntoNewBuffer("python3 manage.py test " + test_module)
         else:
-            runShellCommandIntoNewBuffer("python3 -m unittest discover")
+            runShellCommandIntoNewBuffer("python3 -m unittest discover " + test_module)
         return True
     return False
 RunUnitTestListeners.append(runPythonUnitTests)
@@ -866,13 +868,25 @@ def splitCurrentLineIntoParagraphs():
     deleteLine(current_line_number)
     insertLines(current_line_number, new_lines)
 
+def setTestModule():
+    if getFileType() != 'py':
+        return
+    global test_module
+    test_module = getInput("What is the name of the module you to test? ")
+    runPythonUnitTests(debugger=False)
+
 endpython3
 
 " ensure the current line is no more than 72 characters long
 nmap <leader>le :python3 splitCurrentLineIntoParagraphs()<CR>
 
-" uleader>mc (make check) runs the unit tests
+" <leader>mc (make check) runs the unit tests
 nnoremap <leader>mc :w<CR>:python3 runUnitTests()<CR>
+
+" <leader>mt (make test) sets the test module and then runs the unittests.
+" This is useful in django projects with lots of tests that take forever to
+" run. This will let you just run a single test module
+nnoremap <leader>mt :w<CR>:python3 setTestModule()<CR>
 
 " <leader>cu replaces spaces in the current line with underscores
 nnoremap <leader>cu :python3 replaceSpacesWithUnderscores()<CR>
