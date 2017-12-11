@@ -12,6 +12,7 @@ set wrap
 set linebreak
 set nohlsearch
 set hidden
+set mouse=a
 setlocal nospell spelllang=en_au
 set iskeyword=@,48-57,_,192-255,#
 filetype plugin on
@@ -230,6 +231,22 @@ def addLineToSection(sectionMarker, newline):
     sectionEnd = findLine(sectionMarker)
     if sectionEnd != None:
         insertLine(sectionEnd, newline)
+
+def addLineToSectionByPrefix(line_prefix, newline):
+    """
+    Find the section of the current file where all lines start with `prefix`.
+    Add `newline` just after that section. This is used to add another include
+    line to the top of the file in C. The include section is characterised
+    by lines that start with '#include'.
+    """
+    in_section = False
+    for line_number, line in enumerate(vim.current.buffer):
+        if line.startswith(line_prefix):
+            in_section = True
+        else:
+            if in_section:
+                insertLine(line_number, newline)
+                return
 
 def getInput(message = "? "):
     vim.command("call inputsave()")
@@ -613,14 +630,12 @@ def createTestFunction():
 
 def addFileToCIncludes():
     filetype = getFileType()
-    if filetype != 'cpp' and filetype != 'hpp':
+    if filetype not in ['cpp', 'hpp', 'c', 'h']:
         return False
     currentLineNumber = getRow()
     filename = getInput("Filename to include (including \"\" or <>): ")
-    if filename.startswith("\"") and filename.endswith("\""):
-        addLineToSection("//End Include Section", "#include " + filename)
-    elif filename.startswith("<") and filename.endswith(">"):
-        addLineToSection("//End Include Section", "#include " + filename)
+    if filename[0] in ['"', '<'] and filename[-1] in ['"', ">"]:
+        addLineToSectionByPrefix("#include", "#include " + filename)
     else:
         return
     setCursor(currentLineNumber + 1, getCol())
