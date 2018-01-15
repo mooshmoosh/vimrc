@@ -79,6 +79,10 @@ Plug 'tpope/vim-jdaddy'
 Plug 'idanarye/vim-vebugger'
 Plug 'Shougo/vimproc.vim', {'do' : 'make'}
 Plug 'vim-scripts/todo-txt.vim'
+" Commented the following out because it overloads the <leader>b shortcut
+" which leads to a slight delay when opening buffergator. A delay I don't have
+" time for!
+"Plug 'christianrondeau/vim-base64'
 
 call plug#end()
 "}}}
@@ -502,6 +506,8 @@ def addPythonImport():
         # the event.
         return True
     importSectionBeginning = findFirstLineStartingWith(['import', 'from'])
+    if importSectionBeginning == 0 and getLine(0) == "#!/usr/bin/python3":
+        importSectionBeginning = 1
     if ' from ' in moduleName:
         fromIndex = moduleName.index(' from ')
         parentModuleIndex = fromIndex + len(' from ')
@@ -761,6 +767,12 @@ def createPrintLine():
         if listener():
             return
 
+def reverseSomeLines():
+    count = int(getInput("How many lines should be reversed? "))
+    firstLine = getRow()
+    oldLines = getLines(firstLine, firstLine + count)
+    newLines = list(reversed(oldLines))
+    setLines(firstLine, firstLine + count, newLines)
 
 def zipSpecifiedLines(firstLine, count, sections):
     oldLines = getLines(firstLine, firstLine + sections * count)
@@ -922,6 +934,9 @@ nnoremap <leader>gb :!git blame %<CR>
 
 "Add an include/import
 nnoremap <leader>c# :python3 addToIncludes()<CR>
+
+" reverse the order of the next few lines
+nnoremap <leader>cr :python3 reverseSomeLines()<CR>
 
 " alternate between the nth line and the (n + count)th line
 nnoremap <leader>cz :python3 zipLines()<CR>
