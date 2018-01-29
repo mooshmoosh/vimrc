@@ -13,11 +13,6 @@ alias vimdiff='nvim -d'
 
 alias sql='q -O -T -d, -H'
 
-if [ "$IN_NVIM_TERMINAL" != "YES" ]
-then
-    [ -z $TMUX ] && tmux
-fi
-
 function vim() {
     if [ "$IN_NVIM_TERMINAL" != "YES" ]
     then
