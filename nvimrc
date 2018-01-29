@@ -336,23 +336,10 @@ def deleteCurrentBuffer(force=False):
             print("This buffer has been modified!")
 
 def quitCurrentBuffer(force=False):
-    if len(vim.windows) > 1:
-        if 'NERD_tree' in vim.current.buffer.name:
-            vim.command('q')
-        elif '[[buffergator' in vim.current.buffer.name:
-            vim.command('q')
-        elif len(vim.windows) > 3:
-            vim.command('q')
-        elif windowsWithBuffersNameAreOpen(['NERD_tree', '[[buffergator']):
-            deleteCurrentBuffer(force)
-        elif len(vim.windows) == 3:
-            vim.command('q')
-        elif windowsWithBuffersNameAreOpen(['NERD_tree']):
-            deleteCurrentBuffer(force)
-        elif windowsWithBuffersNameAreOpen(['[[buffergator']):
-            deleteCurrentBuffer(force)
-        else:
-            vim.command('q')
+    if 'NERD_tree' in vim.current.buffer.name:
+        vim.command('q')
+    elif '[[buffergator' in vim.current.buffer.name:
+        vim.command('q')
     else:
         deleteCurrentBuffer(force)
 
