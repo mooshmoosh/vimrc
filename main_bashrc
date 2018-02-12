@@ -29,6 +29,12 @@ then
     PATH=$PATH:/home/wmischlewski/bin
     export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre/
 fi
+if [ "$ENVIRONMENT_COMPUTER" == "HOME" ]
+then
+    # These paths are only relevent at home
+    PATH=$PATH:/home/will/Documents/Programming/hackerscripts
+    PATH=$PATH:/home/will/bin
+fi
 
 alias  thumb="python3 -c 'print(\"\U0001F44D\")' | xclip -in -selection \"clipboard\""
 alias  panda="python3 -c 'print(\"\U0001F43C\")' | xclip -in -selection \"clipboard\""
