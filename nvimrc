@@ -177,7 +177,7 @@ def newBuffer(initial_text=""):
     appendText(initial_text)
     deleteLine(0)
 
-def setLine(i, newLink):
+def setLine(i, newLine):
     vim.current.buffer[i] = newLine
 
 def setLines(i, j, newLines):
