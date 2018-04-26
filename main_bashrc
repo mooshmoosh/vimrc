@@ -33,7 +33,8 @@ fi
 alias  thumb="python3 -c 'print(\"\U0001F44D\")' | xclip -in -selection \"clipboard\""
 alias  panda="python3 -c 'print(\"\U0001F43C\")' | xclip -in -selection \"clipboard\""
 alias bottle="python3 -c 'print(\"\U0001F37E\")' | xclip -in -selection \"clipboard\""
-alias   cool="python3 -c 'print(\"\U0001F60E\")' | xclup -in -selection \"clipboard\""
+alias   cool="python3 -c 'print(\"\U0001F60E\")' | xclip -in -selection \"clipboard\""
+alias   star="python3 -c 'print(\"\U0001F31F\")' | xclip -in -selection \"clipboard\""
 
 alias clip="xclip -in -selection \"clipboard\""
 

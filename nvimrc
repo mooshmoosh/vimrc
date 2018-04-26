@@ -29,8 +29,11 @@ call plug#begin('~/.config/nvim/plugged')
 Plug 'scrooloose/nerdtree'
 " fuzzy searching
 Plug 'ctrlpvim/ctrlp.vim'
-let g:ctrlp_user_command = ['.git/', 'git --git-dir=%s/.git ls-files -oc --exclude-standard']
-let g:ctrlp_follow_symlinks = 1
+let g:ctrlp_user_command=['.git/', 'git --git-dir=%s/.git ls-files -oc --exclude-standard']
+let g:ctrlp_follow_symlinks=1
+" Add a short cut for opening most recently used mode
+nnoremap <leader>mru :CtrlPMRU<CR>
+
 " Highligh the corresponding html tag
 Plug 'valloric/MatchTagAlways'
 " This lets leader% jump to the corresponding tag, similarly to how % works on
@@ -411,6 +414,10 @@ vnoremap P "+P
 
 " Make // in visual mode search for the text I've selected
 vnoremap // "qy/<C-R>q<CR>
+" When i want to do a substitution in visual mode, it is on just the selected
+" text, not includeing the text on the same line but outside the selection
+" (vim's default)
+vnoremap :s/ :s/\%V
 
 "Shortcuts for opening and loading vimrc
 nnoremap <leader>ve :edit ~/.config/nvim/init.vim<CR>
@@ -438,6 +445,8 @@ nnoremap <leader>fs :python3 launchFirefoxAndSearch()<CR>
 " It is really annoying to have spelling checker on all the time, but I like
 " to use it occasionally.
 nnoremap <leader>ss :set invspell<CR>
+
+nnoremap <leader>! yyp!!bash<CR>
 
 "}}}
 "Organisational mappings
@@ -967,7 +976,7 @@ def matchIndentWithPreviousLine():
     setLine(lineNumber, indent + newLineContent)
     setCursor(lineNumber, len(indent))
 
-def extendCommentBlock():
+def extendCCommentBlock():
     lineNumber = getRow()
     (indent, line) = splitIndentFromText(getLine(lineNumber-1))
     if line.startswith('//'):
@@ -984,6 +993,12 @@ def extendCommentBlock():
         newLineContent = getLine(lineNumber)[4:]
         setLine(lineNumber, indent + '* ' + newLineContent)
         setCursor(lineNumber, len(indent) + 3)
+
+def extendCommentBlock():
+    if getFileType() in ['cpp', 'hpp', 'c', 'h']:
+        extendCCommentBlock()
+    else:
+        return
 
 def addBulletPoint():
     if getFileType() != 'md':
@@ -1012,10 +1027,7 @@ def EmitPreEnterKeyEvent():
         l()
 
 EnterKeyListeners = [
-    matchIndentWithPreviousLine,
-    extendCommentBlock,
     expandCurlyBrackets,
-    addBulletPoint
 ]
 
 def EmitEnterKeyEvent():
