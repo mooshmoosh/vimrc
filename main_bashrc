@@ -14,11 +14,12 @@ alias vimdiff='nvim -d'
 alias sql='q -O -T -d, -H'
 
 function vim() {
+    echo "opeing nvim: $@"
     if [ "$IN_NVIM_TERMINAL" != "YES" ]
     then
-        nvim $@
+        eval "nvim $@"
     else
-        nvr --remote $@
+        eval "nvr --remote $@"
     fi
 }
 if [ "$ENVIRONMENT_COMPUTER" == "WORK" ]
@@ -34,12 +35,13 @@ then
     # These paths are only relevent at home
     PATH=$PATH:/home/will/Documents/Programming/hackerscripts
     PATH=$PATH:/home/will/bin
+    PATH=$PATH:/home/will/.local/bin
 fi
 
 alias  thumb="python3 -c 'print(\"\U0001F44D\")' | xclip -in -selection \"clipboard\""
 alias  panda="python3 -c 'print(\"\U0001F43C\")' | xclip -in -selection \"clipboard\""
 alias bottle="python3 -c 'print(\"\U0001F37E\")' | xclip -in -selection \"clipboard\""
-alias   cool="python3 -c 'print(\"\U0001F60E\")' | xclup -in -selection \"clipboard\""
+alias   cool="python3 -c 'print(\"\U0001F60E\")' | xclip -in -selection \"clipboard\""
 
 alias clip="xclip -in -selection \"clipboard\""
 

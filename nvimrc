@@ -37,7 +37,7 @@ Plug 'valloric/MatchTagAlways'
 " brackets
 nnoremap <leader>% :MtaJumpToOtherTag<cr>
 "csv plugin
-Plug 'chrisbra/csv.vim'
+"Plug 'chrisbra/csv.vim'
 " beautifiers for json and xml
 Plug 'xni/vim-beautifiers'
 " grepping files
@@ -84,6 +84,11 @@ Plug 'vim-scripts/todo-txt.vim'
 " time for!
 "Plug 'christianrondeau/vim-base64'
 
+" Plugin for handling orgmode files. There is a nice app on my phone that used
+" the orgmode format.
+Plug 'jceb/vim-orgmode'
+" This is required for orgmode
+Plug 'tpope/vim-speeddating'
 call plug#end()
 "}}}
 "Python set up. Mainly my wrapper around Vim API
@@ -133,6 +138,9 @@ def getRow():
 def getCol():
     (x,y) = vim.current.window.cursor
     return y
+
+def getLineCount():
+    return len(vim.current.buffer)
 
 def getLine(i):
     return vim.current.buffer[i]
@@ -289,7 +297,11 @@ def getAltBufferNumber():
 def getPreviousBufferNumber():
     vim.command('bNext')
     result = vim.current.buffer.number
-    vim.command('bnext')
+    try:
+        vim.command('bnext')
+    except Exception as e:
+        print("exception raised while getting previous buffer number")
+        print(e)
     return result
 
 def makePreviousBufferAltBuffer():
@@ -299,7 +311,10 @@ def makePreviousBufferAltBuffer():
 def switchToBufferNumber(number):
     if number is None:
         return
-    vim.command("b" + str(number))
+    try:
+        vim.command("b" + str(number))
+    except:
+        print("could not switch to buffer ", number)
 
 def deleteCurrentBuffer(force=False):
     current_buffer_number = vim.current.buffer.number
@@ -308,7 +323,10 @@ def deleteCurrentBuffer(force=False):
     filename = getFilename()
     if previous_buffer_number == current_buffer_number:
         if force:
-            vim.command('q!')
+            try:
+                vim.command('q!')
+            except:
+                print("Couldn't even force the closing of the current buffer!")
         else:
             try:
                 vim.command('q')
@@ -332,16 +350,18 @@ def deleteCurrentBuffer(force=False):
             # see above
             makePreviousBufferAltBuffer()
         except:
-            switchToBufferNumber(current_buffer_number)
             print("This buffer has been modified!")
+            switchToBufferNumber(current_buffer_number)
 
 def quitCurrentBuffer(force=False):
-    if 'NERD_tree' in vim.current.buffer.name:
-        vim.command('q')
-    elif '[[buffergator' in vim.current.buffer.name:
-        vim.command('q')
-    else:
-        deleteCurrentBuffer(force)
+    try:
+        if '[[buffergator' in vim.current.buffer.name:
+            vim.command('q')
+        else:
+            deleteCurrentBuffer(force)
+    except Exception as e:
+        print("Exception raised while quitting current buffer")
+        print(e)
 
 def findBufferWithName(starts_with, contains=None):
     for buf in vim.buffers:
@@ -363,6 +383,14 @@ def launchFirefoxAndSearch():
         return
     vim.command('!firefox "https://duckduckgo.com/?q=' + search_url + '"')
 
+def exportToAnki():
+    try:
+        with open("/home/will/Documents/Anki2/exported.tsv", 'r') as f:
+            lines = f.read().splitlines()
+    except FileNotFoundError:
+        print("No previous export, creating")
+        lines = []
+
 endpython3
 "}}}
 "simple remappings
@@ -372,8 +400,14 @@ endpython3
 " makes shift tab insert a tab character
 inoremap <S-Tab> <C-V><Tab>
 
+" I often need to insert text at many points. This lets me create a macro in
+" 'e' that move the curser to the next point to insert text. I can then enter
+" the text, hit ctrl-Space, and be at the next point.
+inoremap <C-Space> <ESC>@ei
+
 "Navigation shortcuts
 inoremap kj <ESC>
+inoremap KJ <ESC>
 nnoremap <leader>, :bN<CR>
 nnoremap <leader>/ :bn<CR>
 nnoremap <leader>. :b#<CR>
@@ -445,6 +479,11 @@ nnoremap <leader>ss :set invspell<CR>
 "open a file from the current directory
 nnoremap <leader>oi :edit %:p:h/
 
+"open a file in my spreadsheets folder. These are scripts that output stuff I
+"often want to paste into vim. They have data at the top of them that can be
+"manipulated in vim easily to affect the output.
+nnoremap <leader>os :edit /home/will/Documents/Programming/spreadsheet-scripts<CR>
+
 "open a file that is already open. This shows the open buffers and gets ready
 "to recieve a numbered buffer to switch to.
 nnoremap <leader>oo :ls<CR>:b
@@ -460,6 +499,12 @@ nnoremap <leader>oh :vsplit %:p:h/
 
 "Change the current directory to the directory containing the current file
 nnoremap <leader>od :chdir %:p:h<CR>
+
+"Export the current set of notes as anki cards
+nnoremap <leader>oea :!markdown_to_anki.lisp '%'<CR>
+
+"move the current line to the end of the file
+nnoremap <leader>oe m0ddGp`0
 
 "}}}
 "Remappings specifically for python3 code
@@ -720,6 +765,23 @@ createDebugLineListeners.append(createJavascriptDebugLine)
 
 endpython3
 "}}}
+"Remappings specifically for Lisp code
+"{{{
+python3 << endpython3
+
+def runLispUnitTests(debugger=False):
+    filetype = getFileType()
+    if filetype == 'lisp':
+        runShellCommandIntoNewBuffer("sbcl --script tests.lisp")
+        return True
+    return False
+
+RunUnitTestListeners.append(runLispUnitTests)
+
+endpython3
+
+nnoremap <leader>la J<ESC>xi<RETURN><ESC>0
+"}}}
 "Remappings applicable to editing any code
 "{{{
 "functions used in this section
@@ -829,11 +891,11 @@ def launchCurrentFileInDebugger():
 def executeCurrentScriptIntoNewBuffer():
     if getLine(0).startswith('#!'):
         # get the environment from shebang
-        environment = getLine(0)[2:]
+        environment = getLine(0)[2:].split()
     else:
         print("No shebang found")
         return
-    with subprocess.Popen([environment, getFilename()], stderr=subprocess.PIPE, stdout=subprocess.PIPE) as p:
+    with subprocess.Popen(environment + [getFilename()], stderr=subprocess.PIPE, stdout=subprocess.PIPE) as p:
         result = p.stdout.read().decode()
         result += "\n"
         result += p.stderr.read().decode()
@@ -867,6 +929,13 @@ def splitCurrentLineIntoParagraphs():
     elif remaining_text.startswith('# '):
         remaining_text = remaining_text[2:]
         indent += "# "
+    elif remaining_text.startswith('; '):
+        remaining_text = remaining_text[2:]
+        indent += "; "
+    elif remaining_text.startswith('-- '):
+        # SQL comments
+        remaining_text = remaining_text[3:]
+        indent += "-- "
     elif remaining_text.startswith('* '):
         # The text should be indented assuming the bullet point isn't there
         # But the first line should still have the bullet point
@@ -1123,6 +1192,8 @@ let g:vimwiki_list = [{'path': '~/Documents/Notes/vimwiki', 'syntax': 'markdown'
 
 " Open the calendar
 nnoremap <leader>wc :Calendar<CR>
+
+
 "}}}
 " Configure vebugger
 "{{{
@@ -1130,4 +1201,41 @@ let g:vebugger_leader='<leader>d'
 
 nnoremap <leader>mdc :w<CR>:python3 runUnitTests(debugger=True)<CR>
 "}}}
+" Remapings for todo.txt
+"{{{
+nnoremap <localleader>to :edit ~/Nextcloud/Notes/todo.txt<CR>
 
+python3 << endpython3
+
+def getTodoContext(line):
+    return next(filter(lambda x : x[0] == '@', line.split()))
+
+def foldTodoContext():
+    if not getFilename().endswith('todo.txt'):
+        return
+    vim.command("setlocal foldmethod=manual")
+    current_row = getRow()
+    current_todo_context = getTodoContext(getLine(current_row))
+    first_row = current_row - 1
+    while first_row >= 0 and getTodoContext(getLine(first_row)) == current_todo_context:
+        first_row -= 1
+    first_row += 2
+    last_row = current_row + 1
+    while last_row < getLineCount() and getTodoContext(getLine(last_row)) == current_todo_context:
+        last_row += 1
+    if last_row > first_row:
+        vim.command("{a},{b}fold".format(a=first_row, b=last_row))
+endpython3
+
+nnoremap <localleader>tf :python3 foldTodoContext()<CR>
+
+" Sort all lines by their task name, not the dates or x at the start
+" I use this to merge to do text files when I have a conflict between my
+" computer and my phone. This makes it easier to compare the two files in
+" meld.
+nnoremap <localleader>st :sort /\(x\s*\)\?\([0-9]\{4}-[0-9]\{2}-[0-9]\{2}\s*\)\{1,2}/<CR>
+
+" Sort by all the contexts together, and all the projects together within
+" each context
+nnoremap <localleader>ss :sort /+[a-zA-Z]*/ r<CR>:sort /@[a-zA-Z]*/ r<CR>:sort /^x/ r<CR>
+"}}}
