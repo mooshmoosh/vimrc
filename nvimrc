@@ -20,6 +20,7 @@ let mapleader=","
 let maplocalleader=" "
 hi MatchParen ctermbg=1 guibg=lightblue
 let $IN_NVIM_TERMINAL="YES"
+au CursorHold,CursorHoldI * checktime
 "}}}
 " vim-plug setup
 "{{{
@@ -42,6 +43,7 @@ nnoremap <leader>% :MtaJumpToOtherTag<cr>
 Plug 'xni/vim-beautifiers'
 " grepping files
 Plug 'mhinz/vim-grepper'
+
 " Allows organising notes and todos in markdown files that are linked
 Plug 'vimwiki/vimwiki'
 " A calendar plugin for wiki
@@ -52,6 +54,7 @@ let g:gitgutter_diff_args = '--patience'
 " Allows for aligining of text at specified characters
 Plug 'junegunn/vim-easy-align'
 " Start interactive EasyAlign in visual mode (e.g. vipga)
+" align all occurances of a character with gaip*
 xmap ga <Plug>(EasyAlign)
 " Start interactive EasyAlign for a motion/text object (e.g. gaip)
 nmap ga <Plug>(EasyAlign)
@@ -95,6 +98,7 @@ call plug#end()
 "{{{
 python3 << endpython3
 import vim
+import neovim
 import os
 import re
 import requests
@@ -417,6 +421,7 @@ nnoremap !<leader>q :python3 quitCurrentBuffer(force=True)<CR>
 
 " Open the grepper
 nnoremap <leader>gg :Grepper<CR>
+"nnoremap <leader>gg :Grepper -tool ag -noprompt -dir /home/will/Nextcloud/Notes -grepprg ag --vimgrep -Q <CR>
 
 " I'm not sure what ctrl-W in insert mode is supposed to do, but I often
 " accidently forget I'm in insert mode, want to switch to another window and
@@ -458,7 +463,7 @@ autocmd BufWritePre * :silent! %s/\(\.*\)\s\+$/\1
 " <leader>tt opens / switches to a terminal.
 nnoremap <leader>tt :python3 switchToBufferWithName('term:', 'term:///bin/bash', '/bin/bash')<CR>A
 " <leader>tp opens / switches to a new terminal with python prompt
-nnoremap <leader>tp :python3 switchToBufferWithName('term:', 'term:///usr/bin/python3', '/usr/bin/python3')<CR>A
+nnoremap <leader>tp :python3 switchToBufferWithName('term:', 'term:///usr/bin/ipython', '/usr/bin/ipython')<CR>A
 nnoremap <leader>tn :edit term://bash<CR>A
 " Similarly, but split window
 nnoremap <leader>tw :vsplit term://bash<CR>
@@ -505,6 +510,7 @@ nnoremap <leader>oea :!markdown_to_anki.lisp '%'<CR>
 
 "move the current line to the end of the file
 nnoremap <leader>oe m0ddGp`0
+vnoremap <leader>oe :python3 moveSelectedLinesToEnd()<CR>
 
 "}}}
 "Remappings specifically for python3 code
@@ -523,7 +529,10 @@ def runPythonUnitTests(debugger=False):
             else:
                 runShellCommandIntoNewBuffer("python3 manage.py test " + test_module)
         else:
-            runShellCommandIntoNewBuffer("python3 -m unittest discover " + test_module)
+            if debugger:
+                vim.command("VBGstartPDB3 python3 -m unittest discover " + test_module)
+            else:
+                runShellCommandIntoNewBuffer("python3 -m unittest discover " + test_module)
         return True
     return False
 RunUnitTestListeners.append(runPythonUnitTests)
@@ -615,8 +624,11 @@ def generateCTagsFile():
     if filetype == 'py':
         extensions = ['.py']
         command = ['/usr/bin/ctags', '--python-kinds=-i', '-f', 'tags', '-L', '-']
-    elif filetype in ['c', 'h']:
+    elif filetype in ['c', 'h', 'cpp']:
         extensions = ['.h', '.c']
+        command = ['/usr/bin/ctags', '-f', 'tags', '-L', '-']
+    elif filetype == '.lisp':
+        extensions = ['.lisp']
         command = ['/usr/bin/ctags', '-f', 'tags', '-L', '-']
     else:
         return
@@ -772,7 +784,16 @@ python3 << endpython3
 def runLispUnitTests(debugger=False):
     filetype = getFileType()
     if filetype == 'lisp':
-        runShellCommandIntoNewBuffer("sbcl --script tests.lisp")
+        directory = os.path.split(getFilename())[0]
+        test_file = os.path.join(directory, 'tests.lisp')
+        while not os.path.isfile(test_file):
+            if directory == '/':
+                print("No tests.lisp file found")
+                return True
+            directory = os.path.split(directory)[0]
+            test_file = os.path.join(directory, 'tests.lisp')
+        runShellCommandIntoNewBuffer(
+            "sbcl --script {test_file}".format(test_file=test_file))
         return True
     return False
 
@@ -786,6 +807,13 @@ nnoremap <leader>la J<ESC>xi<RETURN><ESC>0
 "{{{
 "functions used in this section
 python3 << endpython3
+def moveSelectedLinesToEnd():
+    selected_range = vim.current.range
+    selected_lines = vim.current.buffer[selected_range.start:selected_range.end]
+    del vim.current.buffer[selected_range.start:selected_range.end]
+    for line in selected_lines:
+        vim.current.buffer.append(line)
+
 def replaceSpacesWithUnderscores():
     currentLineNumber = getRow()
     (indent, line) = splitIndentFromText(getLine(currentLineNumber))
@@ -892,6 +920,8 @@ def executeCurrentScriptIntoNewBuffer():
     if getLine(0).startswith('#!'):
         # get the environment from shebang
         environment = getLine(0)[2:].split()
+    elif getFileType() == 'm4':
+        environment = ['/usr/bin/m4']
     else:
         print("No shebang found")
         return
@@ -899,6 +929,7 @@ def executeCurrentScriptIntoNewBuffer():
         result = p.stdout.read().decode()
         result += "\n"
         result += p.stderr.read().decode()
+    vim.command('checktime')
     newBuffer(initial_text=result)
 
 def pipeStringToCommand(data, command):
@@ -936,6 +967,10 @@ def splitCurrentLineIntoParagraphs():
         # SQL comments
         remaining_text = remaining_text[3:]
         indent += "-- "
+    elif remaining_text.startswith('* ') and getFileType() in ['c', 'h']:
+        # Block style comments in C, but only in a .c or .h file
+        remaining_text = remaining_text[2:]
+        indent += "* "
     elif remaining_text.startswith('* '):
         # The text should be indented assuming the bullet point isn't there
         # But the first line should still have the bullet point
@@ -1017,8 +1052,6 @@ nmap <leader>fl f,wi<CR><ESC>
 "execute the current file as a script
 nnoremap <leader>r :w<CR>:python3 executeCurrentScriptIntoNewBuffer()<CR>
 
-" same as <leader>r but launches the python script with the debugger
-nnoremap <leader>dr :python3 launchCurrentFileInDebugger()<CR>
 "}}}
 "Remapping the enter key
 "{{{
@@ -1200,6 +1233,9 @@ nnoremap <leader>wc :Calendar<CR>
 let g:vebugger_leader='<leader>d'
 
 nnoremap <leader>mdc :w<CR>:python3 runUnitTests(debugger=True)<CR>
+
+" same as <leader>r but launches the python script with the debugger
+nnoremap <leader>dr :python3 launchCurrentFileInDebugger()<CR>
 "}}}
 " Remapings for todo.txt
 "{{{

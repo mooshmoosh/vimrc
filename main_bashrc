@@ -9,6 +9,14 @@ alias ls='ls --color=auto'
 PS1='[\u@\h \W]\$ '
 shopt -s checkwinsize
 
+# This should give me more bash history, appending instead of overwriting
+# the bashhistory file
+shopt -s histappend
+
+# Set the max size of the bash history to be massive
+HISTFILESIZE=1000000
+HISTSIZE=1000000
+
 alias vimdiff='nvim -d'
 
 alias sql='q -O -T -d, -H'
@@ -35,6 +43,7 @@ then
     # These paths are only relevent at home
     PATH=$PATH:/home/will/Documents/Programming/hackerscripts
     PATH=$PATH:/home/will/bin
+    PATH=$PATH:/home/will/scripts
     PATH=$PATH:/home/will/.local/bin
 fi
 
