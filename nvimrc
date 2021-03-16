@@ -30,7 +30,7 @@ call plug#begin('~/.config/nvim/plugged')
 Plug 'scrooloose/nerdtree'
 " fuzzy searching
 Plug 'ctrlpvim/ctrlp.vim'
-let g:ctrlp_user_command = ['.git/', 'git --git-dir=%s/.git ls-files -oc --exclude-standard']
+let g:ctrlp_user_command = 'find -type f | grep -i "\(\.py$\|[tj]sx\?$\)" | grep -vi "\(\/migrations\/\|\/node_modules\/\|js-build\/\|static\/\)"'
 let g:ctrlp_follow_symlinks = 1
 " Highligh the corresponding html tag
 Plug 'valloric/MatchTagAlways'
@@ -43,6 +43,9 @@ nnoremap <leader>% :MtaJumpToOtherTag<cr>
 Plug 'xni/vim-beautifiers'
 " grepping files
 Plug 'mhinz/vim-grepper'
+
+" colouring for typescript
+Plug 'leafgarland/typescript-vim'
 
 " Allows organising notes and todos in markdown files that are linked
 Plug 'vimwiki/vimwiki'
@@ -57,6 +60,7 @@ Plug 'junegunn/vim-easy-align'
 " align all occurances of a character with gaip*
 xmap ga <Plug>(EasyAlign)
 " Start interactive EasyAlign for a motion/text object (e.g. gaip)
+" To align on a character type gaip*<The character (like ,)><Enter>
 nmap ga <Plug>(EasyAlign)
 " A powerline - decide what I want it for first
 " You can specify a function and have its output inserted into the status bar
@@ -92,6 +96,13 @@ Plug 'vim-scripts/todo-txt.vim'
 Plug 'jceb/vim-orgmode'
 " This is required for orgmode
 Plug 'tpope/vim-speeddating'
+Plug 'psf/black', { 'branch': 'stable' }
+
+" add language server protocol support
+"Plug 'prabirshrestha/vim-lsp'
+"Plug 'mattn/vim-lsp-settings'
+Plug 'davidhalter/jedi-vim'
+
 call plug#end()
 "}}}
 "Python set up. Mainly my wrapper around Vim API
@@ -395,6 +406,24 @@ def exportToAnki():
         print("No previous export, creating")
         lines = []
 
+def senclose(string):
+    return "'"+re.sub(re.compile("'"), "''", string)+"'"
+
+def setClipboard(string):
+    vim.command("let @+="+senclose(string))
+
+def getRepo(filename):
+    return ""
+
+def copyRangeAsGithub(select_range=True):
+    current_filename = getFilename().replace('/home/will/repos/K3/','')
+    # get rid of the path up to just after repos/K3/
+    if select_range:
+        selected_range = vim.current.range
+        setClipboard("https://github.com/" + getRepo(getFilename()) + current_filename + "#L" + str(selected_range.start+1) + "-L" + str(selected_range.end+1))
+    else:
+        setClipboard("https://github.com/" + getRepo(getFilename()) + current_filename)
+
 endpython3
 "}}}
 "simple remappings
@@ -421,7 +450,15 @@ nnoremap !<leader>q :python3 quitCurrentBuffer(force=True)<CR>
 
 " Open the grepper
 nnoremap <leader>gg :Grepper<CR>
+" work specific searcher
+nnoremap <leader>ksp :Grepper -tool gk3<CR>
+nnoremap <leader>ksj :Grepper -tool gjs<CR>
 "nnoremap <leader>gg :Grepper -tool ag -noprompt -dir /home/will/Nextcloud/Notes -grepprg ag --vimgrep -Q <CR>
+runtime plugin/grepper.vim
+let g:grepper.tools += ['gk3']
+let g:grepper.gk3 = {'grepprg': '/home/will/bin/gk3'}
+let g:grepper.tools += ['gjs']
+let g:grepper.gjs = {'grepprg': '/home/will/bin/gjs'}
 
 " I'm not sure what ctrl-W in insert mode is supposed to do, but I often
 " accidently forget I'm in insert mode, want to switch to another window and
@@ -457,13 +494,22 @@ nnoremap <leader>vs :source ~/.config/nvim/init.vim<CR>
 
 nnoremap ; @
 
+" Run black formatter before saving
+" autocmd BufWritePre *.py execute ':Black'
+
 "remove all whitespace errors when saving
 autocmd BufWritePre * :silent! %s/\(\.*\)\s\+$/\1
+
+"I want 2 spaces indentation for javascript
+autocmd FileType javascript setlocal shiftwidth=2 tabstop=2
+autocmd FileType javascriptreact setlocal shiftwidth=2 tabstop=2
+autocmd FileType css setlocal shiftwidth=2 tabstop=2
+autocmd FileType scss setlocal shiftwidth=2 tabstop=2
 
 " <leader>tt opens / switches to a terminal.
 nnoremap <leader>tt :python3 switchToBufferWithName('term:', 'term:///bin/bash', '/bin/bash')<CR>A
 " <leader>tp opens / switches to a new terminal with python prompt
-nnoremap <leader>tp :python3 switchToBufferWithName('term:', 'term:///usr/bin/ipython', '/usr/bin/ipython')<CR>A
+nnoremap <leader>tp :python3 switchToBufferWithName('term:', 'term:///usr/bin/ipython3', '/usr/bin/ipython3')<CR>A
 nnoremap <leader>tn :edit term://bash<CR>A
 " Similarly, but split window
 nnoremap <leader>tw :vsplit term://bash<CR>
@@ -621,9 +667,11 @@ createPrintLineListeners.append(createPythonPrintLine)
 
 def generateCTagsFile():
     filetype = getFileType()
+    directories_to_walk = ['.']
     if filetype == 'py':
         extensions = ['.py']
         command = ['/usr/bin/ctags', '--python-kinds=-i', '-f', 'tags', '-L', '-']
+        directories_to_walk.append('/home/will/.local/lib/python3.8/site-packages')
     elif filetype in ['c', 'h', 'cpp']:
         extensions = ['.h', '.c']
         command = ['/usr/bin/ctags', '-f', 'tags', '-L', '-']
@@ -633,12 +681,13 @@ def generateCTagsFile():
     else:
         return
     sourcefiles = []
-    for root, directories, files in os.walk('.', followlinks=True):
-        for filename in files:
-            for extension in extensions:
-                if filename.endswith(extension):
-                    sourcefiles.append(os.path.join(root, filename))
-                    break
+    for to_walk in directories_to_walk:
+        for root, directories, files in os.walk(to_walk, followlinks=True):
+            for filename in files:
+                for extension in extensions:
+                    if filename.endswith(extension):
+                        sourcefiles.append(os.path.join(root, filename))
+                        break
     pipeStringToCommand("\n".join(sourcefiles), command)
 
 endpython3
@@ -819,6 +868,43 @@ def replaceSpacesWithUnderscores():
     (indent, line) = splitIndentFromText(getLine(currentLineNumber))
     setLine(currentLineNumber, indent + line.replace(" ", "_"))
 
+def setCurrentModule(selected=False):
+    current_file = getFilename()
+    prefix = '/home/will/repos" # adjust this accordingly
+    if not current_file.startswith(prefix):
+        print("Not in repo, skipping")
+    current_file = current_file[len(prefix):]
+    if selected:
+        selected_range = vim.current.range
+        selected_lines = vim.current.buffer[selected_range.start:selected_range.end]
+    with open('/home/will/work_config/current_test_command.txt', 'w') as f:
+        f.write("./shortcuts.sh test --create-db " + current_file)
+
+def testCurrentModule():
+    with open('/home/will/work_config/current_test_command.txt', 'r') as f:
+        command = f.read()
+    runShellCommandIntoNewBuffer(command)
+
+def testCurrentDebugModule():
+    vim.command("let g:vebugger_path_python_3='/home/will/bin/python_debug'")
+    with open('/home/will/work_config/current_test_command.txt', 'r') as f:
+        command = f.read()
+    files = command.split()[3:]
+    print("VBGstartPDB3 ./runtests.py " + " ".join(files))
+    vim.command("VBGstartPDB3 ./runtests.py " + " ".join(files))
+    vim.command("let g:vebugger_path_python_3='/usr/bin/python3'")
+
+def runDebuggerWithArgs(args):
+    vim.command("let g:vebugger_path_python_3='/home/will/bin/python_debug'")
+    vim.command("VBGstartPDB3 " + args)
+    vim.command("let g:vebugger_path_python_3='/usr/bin/python3'")
+
+def runCurrentScriptWithDebugger():
+    runDebuggerWithArgs(getFilename())
+
+def debugWebserver():
+    runDebuggerWithArgs("__RUNSERVER__")
+
 def runUnitTests(debugger=False):
     for runner in RunUnitTestListeners:
         if runner(debugger=debugger):
@@ -993,6 +1079,9 @@ def setTestModule():
     test_module = getInput("What is the name of the module you to test? ")
     runPythonUnitTests(debugger=False)
 
+def copyCurrentFilename():
+    setClipboard(getFilename())
+
 endpython3
 
 " ensure the current line is no more than 72 characters long
@@ -1021,7 +1110,11 @@ nnoremap <leader>gc :!git commit<CR>
 " git diff
 nnoremap <leader>gd :vsplit term:///bin/bash<CR>Agit diff<CR>
 " git blame on current file
-nnoremap <leader>gb :!git blame %<CR>
+nnoremap <leader>gb :vsplit term:///usr/bin/git blame %<CR>
+
+"gn and gp to go to the next and previous change according to gitgutter
+nnoremap <leader>gn :GitGutterNextHunk<CR>
+nnoremap <leader>gp :GitGutterPrevHunk<CR>
 
 "Add an include/import
 nnoremap <leader>c# :python3 addToIncludes()<CR>
@@ -1051,6 +1144,9 @@ nmap <leader>fl f,wi<CR><ESC>
 
 "execute the current file as a script
 nnoremap <leader>r :w<CR>:python3 executeCurrentScriptIntoNewBuffer()<CR>
+
+"Copy the current filename
+nnoremap <leader>kf :python3 copyCurrentFilename()<CR>
 
 "}}}
 "Remapping the enter key
@@ -1274,4 +1370,19 @@ nnoremap <localleader>st :sort /\(x\s*\)\?\([0-9]\{4}-[0-9]\{2}-[0-9]\{2}\s*\)\{
 " Sort by all the contexts together, and all the projects together within
 " each context
 nnoremap <localleader>ss :sort /+[a-zA-Z]*/ r<CR>:sort /@[a-zA-Z]*/ r<CR>:sort /^x/ r<CR>
+"}}}
+" Remappings for work
+"{{{
+" Set the current file to be the current test command
+nnoremap <leader>kst :python3 setCurrentModule()<CR>
+" Set the selected text to be the class/function in the current file to be the current test command
+vnoremap <leader>kst :python3 setCurrentModule(selected=True)<CR>
+" Set up a test command in /home/will/work_config/current_test_command.txt
+nnoremap <leader>kt :python3 testCurrentModule()<CR>
+" Runs the test command with the debugger enabled
+nnoremap <leader>kd :python3 testCurrentDebugModule()<CR>
+" Converts the
+nnoremap <leader>kr :python3 runCurrentScriptWithDebugger()<CR>
+" shortcut to copy a range of lines as a link to github
+vnoremap <leader>kg :python3 copyRangeAsGithub()<CR>
 "}}}
