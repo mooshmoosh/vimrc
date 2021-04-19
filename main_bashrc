@@ -5,7 +5,6 @@
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
-alias ls='ls --color=auto'
 PS1='[\u@\h \W]\$ '
 shopt -s checkwinsize
 
@@ -38,6 +37,7 @@ then
     PATH=$PATH:/home/wmischlewski/large-bin
     PATH=$PATH:/home/wmischlewski/bin
     export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre/
+    clip_command="pbcopy"
 fi
 if [ "$ENVIRONMENT_COMPUTER" == "HOME" ]
 then
@@ -46,16 +46,17 @@ then
     PATH=$PATH:/home/will/bin
     PATH=$PATH:/home/will/scripts
     PATH=$PATH:/home/will/.local/bin
+    alias ls='ls --color=auto'
+    clip_command="xclip -in -selection \"clipboard\""
 fi
 
-alias  thumb="python3 -c 'print(\"\U0001F44D\")' | xclip -in -selection \"clipboard\""
-alias  panda="python3 -c 'print(\"\U0001F43C\")' | xclip -in -selection \"clipboard\""
-alias bottle="python3 -c 'print(\"\U0001F37E\")' | xclip -in -selection \"clipboard\""
-alias   cool="python3 -c 'print(\"\U0001F60E\")' | xclip -in -selection \"clipboard\""
 
-alias clip="xclip -in -selection \"clipboard\""
+alias  thumb="python3 -c 'print(\"\U0001F44D\")' | ""$clip_command"
+alias  panda="python3 -c 'print(\"\U0001F43C\")' | ""$clip_command"
+alias bottle="python3 -c 'print(\"\U0001F37E\")' | ""$clip_command"
+alias   cool="python3 -c 'print(\"\U0001F60E\")' | ""$clip_command"
 
 export VISUAL=nvim
 export EDITOR="$VISUAL"
 
-source $VIMRC_DIRECTORY/git-completion.bash
+source ~/$VIMRC_DIRECTORY/git-completion.bash
