@@ -14,10 +14,11 @@ shopt -s checkwinsize
 shopt -s histappend
 
 # Set the max size of the bash history to be massive
-HISTFILESIZE=1000000
-HISTSIZE=1000000
+HISTFILESIZE=-1
+HISTSIZE=-1
 
 alias vimdiff='nvim -d'
+alias icat='kitty +kitten icat'
 
 alias sql='q -O -T -d, -H'
 

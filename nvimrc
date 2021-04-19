@@ -50,7 +50,7 @@ Plug 'vimwiki/vimwiki'
 Plug 'mattn/calendar-vim'
 " Displays the new/modified lines with git in real time
 Plug 'airblade/vim-gitgutter'
-let g:gitgutter_diff_args = '--patience'
+"let g:gitgutter_diff_args = '--patience'
 " Allows for aligining of text at specified characters
 Plug 'junegunn/vim-easy-align'
 " Start interactive EasyAlign in visual mode (e.g. vipga)
@@ -92,6 +92,23 @@ Plug 'vim-scripts/todo-txt.vim'
 Plug 'jceb/vim-orgmode'
 " This is required for orgmode
 Plug 'tpope/vim-speeddating'
+
+" language server protocol support
+"Plug 'prabirshrestha/vim-lsp'
+"Plug 'mattn/vim-lsp-settings'
+
+" Jedi is an alternative language server
+Plug 'davidhalter/jedi-vim'
+
+"Black code formatting
+Plug 'psf/black'
+let g:black_linelength = 100
+autocmd BufWritePre *.py :Black
+
+"Always reload files if they change on disk but not in vim?
+Plug 'djoshea/vim-autoread'
+set updatetime=100
+
 call plug#end()
 "}}}
 "Python set up. Mainly my wrapper around Vim API
@@ -413,7 +430,9 @@ inoremap <C-Space> <ESC>@ei
 inoremap kj <ESC>
 inoremap KJ <ESC>
 nnoremap <leader>, :bN<CR>
+nnoremap <leader>< :tabN<CR>
 nnoremap <leader>/ :bn<CR>
+nnoremap <leader>? :tabn<CR>
 nnoremap <leader>. :b#<CR>
 nnoremap <leader>q :python3 quitCurrentBuffer()<CR>
 nnoremap <leader>wq :w<CR>:python3 quitCurrentBuffer()<CR>
@@ -506,11 +525,12 @@ nnoremap <leader>oh :vsplit %:p:h/
 nnoremap <leader>od :chdir %:p:h<CR>
 
 "Export the current set of notes as anki cards
-nnoremap <leader>oea :!markdown_to_anki.lisp '%'<CR>
+"I don't really use this any more
+nnoremap <leader>oea :!markdown_to_anki.py '/home/will/Documents/anki-to-import.csv' '%'<CR>
 
 "move the current line to the end of the file
-nnoremap <leader>oe m0ddGp`0
-vnoremap <leader>oe :python3 moveSelectedLinesToEnd()<CR>
+nnoremap <leader>oe :+1mark0<CR>:m$<CR>`0
+vnoremap <leader>oe :+1mark0<CR>:m$<CR>`0
 
 "}}}
 "Remappings specifically for python3 code
@@ -807,13 +827,6 @@ nnoremap <leader>la J<ESC>xi<RETURN><ESC>0
 "{{{
 "functions used in this section
 python3 << endpython3
-def moveSelectedLinesToEnd():
-    selected_range = vim.current.range
-    selected_lines = vim.current.buffer[selected_range.start:selected_range.end]
-    del vim.current.buffer[selected_range.start:selected_range.end]
-    for line in selected_lines:
-        vim.current.buffer.append(line)
-
 def replaceSpacesWithUnderscores():
     currentLineNumber = getRow()
     (indent, line) = splitIndentFromText(getLine(currentLineNumber))
@@ -1050,7 +1063,7 @@ nnoremap <leader>cp :python3 createPrintLine()<CR>
 nmap <leader>fl f,wi<CR><ESC>
 
 "execute the current file as a script
-nnoremap <leader>r :w<CR>:python3 executeCurrentScriptIntoNewBuffer()<CR>
+nnoremap <leader>rr :w<CR>:python3 executeCurrentScriptIntoNewBuffer()<CR>
 
 "}}}
 "Remapping the enter key
@@ -1223,10 +1236,28 @@ endpython3
 "{{{
 let g:vimwiki_list = [{'path': '~/Documents/Notes/vimwiki', 'syntax': 'markdown', 'ext': '.md'}]
 
+function! VimwikiLinkHandler(link)
+  " Use Vim to open external files with the 'vfile:' scheme.  E.g.:
+  "   1) [[vfile:~/Code/PythonProject/abc123.py]]
+  "   2) [[vfile:./|Wiki Home]]
+  let link = a:link
+  if link =~# '^vfile:'
+    let link = link[1:]
+  else
+    return 0
+  endif
+  let link_infos = vimwiki#base#resolve_link(link)
+  if link_infos.filename == ''
+    echomsg 'Vimwiki Error: Unable to resolve link!'
+    return 0
+  else
+    exe 'edit ' . fnameescape(link_infos.filename)
+    return 1
+  endif
+endfunction
+
 " Open the calendar
 nnoremap <leader>wc :Calendar<CR>
-
-
 "}}}
 " Configure vebugger
 "{{{
@@ -1274,4 +1305,34 @@ nnoremap <localleader>st :sort /\(x\s*\)\?\([0-9]\{4}-[0-9]\{2}-[0-9]\{2}\s*\)\{
 " Sort by all the contexts together, and all the projects together within
 " each context
 nnoremap <localleader>ss :sort /+[a-zA-Z]*/ r<CR>:sort /@[a-zA-Z]*/ r<CR>:sort /^x/ r<CR>
+"}}}
+" Experiments
+"{{{
+" Omni complete functions
+"
+" need a function that is called twice. THe first time findstart is 1, then
+" again wtih findstart = 0.
+"
+" The first time, return a number that indicates the position of the start of
+" the word being autocompleted
+"
+" the second time, return a list of possible words to autocomplete with
+"
+" function! Python_test_completion(findstart, base)
+"     if a:findstart
+"         return col('.') - 3
+"     else
+" python3 << endpython3
+"
+" findstart = vim.eval('a:findstart')
+" base = vim.eval('a:base')
+" with open("/tmp/test_onmi.log", 'a') as f:
+"     f.write("findstart: {}\n".format(findstart))
+"     f.write("base: {}\n".format(base))
+"     vim.vars.set('l:result', '
+" endpython3
+"
+"         return ['hello', 'world', 'blah']
+"     endif
+" endfunction
 "}}}
