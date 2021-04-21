@@ -40,7 +40,8 @@ nnoremap <leader>% :MtaJumpToOtherTag<cr>
 "csv plugin
 "Plug 'chrisbra/csv.vim'
 " beautifiers for json and xml
-Plug 'xni/vim-beautifiers'
+"Plug 'xni/vim-beautifiers'
+Plug 'alpaca-tc/beautify.vim'
 " grepping files
 Plug 'mhinz/vim-grepper'
 
@@ -101,9 +102,9 @@ Plug 'tpope/vim-speeddating'
 Plug 'davidhalter/jedi-vim'
 
 "Black code formatting
-Plug 'psf/black'
-let g:black_linelength = 100
-autocmd BufWritePre *.py :Black
+"Plug 'psf/black'
+"let g:black_linelength = 100
+"autocmd BufWritePre *.py :Black
 
 "Always reload files if they change on disk but not in vim?
 Plug 'djoshea/vim-autoread'
@@ -411,6 +412,15 @@ def exportToAnki():
     except FileNotFoundError:
         print("No previous export, creating")
         lines = []
+
+def senclose(string):
+    return "'"+re.sub(re.compile("'"), "''", string)+"'"
+
+def setClipboard(string):
+    vim.command("let @+="+senclose(string))
+
+def copyCurrentFilename():
+    setClipboard(getFilename())
 
 endpython3
 "}}}
@@ -1064,6 +1074,9 @@ nmap <leader>fl f,wi<CR><ESC>
 
 "execute the current file as a script
 nnoremap <leader>rr :w<CR>:python3 executeCurrentScriptIntoNewBuffer()<CR>
+
+"Copy the current filename
+nnoremap <leader>kf :python3 copyCurrentFilename()<CR>
 
 "}}}
 "Remapping the enter key

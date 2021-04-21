@@ -12,10 +12,6 @@ shopt -s checkwinsize
 # the bashhistory file
 shopt -s histappend
 
-# Set the max size of the bash history to be massive
-HISTFILESIZE=-1
-HISTSIZE=-1
-
 alias vimdiff='nvim -d'
 alias icat='kitty +kitten icat'
 
@@ -33,11 +29,12 @@ function vim() {
 if [ "$ENVIRONMENT_COMPUTER" == "WORK" ]
 then
     # These paths are only relevent at work
-    PATH=$PATH:/home/wmischlewski/gitrepos/hackerscripts
-    PATH=$PATH:/home/wmischlewski/large-bin
-    PATH=$PATH:/home/wmischlewski/bin
-    export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre/
+    PATH=$PATH:/Users/Mischlewski/bin:/Users/Mischlewski/.pyenv/versions/3.6.0/bin:/Users/Mischlewski/.pyenv/versions/3.7.0/bin
     clip_command="pbcopy"
+
+    # Set the max size of the bash history to be massive
+    HISTFILESIZE=10000
+    HISTSIZE=10000
 fi
 if [ "$ENVIRONMENT_COMPUTER" == "HOME" ]
 then
@@ -48,6 +45,10 @@ then
     PATH=$PATH:/home/will/.local/bin
     alias ls='ls --color=auto'
     clip_command="xclip -in -selection \"clipboard\""
+
+    # Set the max size of the bash history to be massive
+    HISTFILESIZE=-1
+    HISTSIZE=-1
 fi
 
 
@@ -60,3 +61,5 @@ export VISUAL=nvim
 export EDITOR="$VISUAL"
 
 source ~/$VIMRC_DIRECTORY/git-completion.bash
+source ~/$VIMRC_DIRECTORY/completions.bash
+source ~/completions.bash
