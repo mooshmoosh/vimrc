@@ -118,7 +118,6 @@ import vim
 import neovim
 import os
 import re
-import requests
 import json
 import subprocess
 
@@ -206,7 +205,7 @@ def newBuffer(initial_text=""):
     appendText(initial_text)
     deleteLine(0)
 
-def setLine(i, newLink):
+def setLine(i, newLine):
     vim.current.buffer[i] = newLine
 
 def setLines(i, j, newLines):
@@ -1292,7 +1291,20 @@ def foldTodoContext():
         last_row += 1
     if last_row > first_row:
         vim.command("{a},{b}fold".format(a=first_row, b=last_row))
+
+import datetime
+
+def typeDateHere():
+    current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+    line = getLine(getRow())
+    idx = getCol()
+    setLine(getRow(), line[:idx] + current_date + line[idx:])
+    setCursor(getRow(), getCol() + 10)
+
 endpython3
+
+" Insert the date at the current location
+nnoremap <leader>td :python3 typeDateHere()<CR>
 
 nnoremap <localleader>tf :python3 foldTodoContext()<CR>
 
