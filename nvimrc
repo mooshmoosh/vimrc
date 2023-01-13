@@ -81,7 +81,7 @@ nnoremap <leader>b :BuffergatorToggle<CR>
 Plug 'tpope/vim-jdaddy'
 Plug 'idanarye/vim-vebugger'
 Plug 'Shougo/vimproc.vim', {'do' : 'make'}
-Plug 'vim-scripts/todo-txt.vim'
+" Plug 'vim-scripts/todo-txt.vim'
 " Commented the following out because it overloads the <leader>b shortcut
 " which leads to a slight delay when opening buffergator. A delay I don't have
 " time for!
@@ -103,7 +103,7 @@ Plug 'davidhalter/jedi-vim'
 "Black code formatting
 Plug 'psf/black'
 let g:black_linelength = 100
-autocmd BufWritePre *.py :Black
+"autocmd BufWritePre *.py :Black
 
 "Always reload files if they change on disk but not in vim?
 Plug 'djoshea/vim-autoread'
@@ -1255,8 +1255,14 @@ function! VimwikiLinkHandler(link)
   endif
 endfunction
 
+" This is to prevent vimwiki from mapping wc
+nnoremap <leader><leader>VimwikiColorizeNormal <Plug>VimwikiColorizeNormal
 " Open the calendar
 nnoremap <leader>wc :Calendar<CR>
+"next day in diary
+nnoremap <leader>w<Down> <Plug>VimwikiDiaryNextDay
+"previous day in diary
+nnoremap <leader>w<Up> <Plug>VimwikiDiaryPrevDay
 "}}}
 " Configure vebugger
 "{{{
@@ -1267,9 +1273,9 @@ nnoremap <leader>mdc :w<CR>:python3 runUnitTests(debugger=True)<CR>
 " same as <leader>r but launches the python script with the debugger
 nnoremap <leader>dr :python3 launchCurrentFileInDebugger()<CR>
 "}}}
-" Remapings for todo.txt
+" Remapings for todo.txt / tasks
 "{{{
-nnoremap <localleader>to :edit ~/Nextcloud/Notes/todo.txt<CR>
+" nnoremap <localleader>to :edit ~/Nextcloud/Notes/todo.txt<CR>
 
 python3 << endpython3
 
@@ -1297,16 +1303,26 @@ import datetime
 def typeDateHere():
     current_date = datetime.datetime.now().strftime("%Y-%m-%d")
     line = getLine(getRow())
-    idx = getCol()
+    idx = getCol() + 1
     setLine(getRow(), line[:idx] + current_date + line[idx:])
     setCursor(getRow(), getCol() + 10)
+
+def ArchiveCompletedTask():
+    line_no = getRow()
+    line = getLine(line_no)
+    deleteLine(line_no)
+    today = datetime.datetime.now().strftime('%Y-%m-%d')
+    with open(os.path.expanduser('~/Documents/Notes/vimwiki/Todos_done.md'), 'a') as f:
+        f.write(f'{line} ({today})\n')
+
 
 endpython3
 
 " Insert the date at the current location
 nnoremap <leader>td :python3 typeDateHere()<CR>
 
-nnoremap <localleader>tf :python3 foldTodoContext()<CR>
+" record a line as completed
+nnoremap <leader>tc :python3 ArchiveCompletedTask()<CR>
 
 " Sort all lines by their task name, not the dates or x at the start
 " I use this to merge to do text files when I have a conflict between my

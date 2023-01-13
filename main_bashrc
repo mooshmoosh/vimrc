@@ -15,12 +15,12 @@ shopt -s histappend
 
 # Set the max size of the bash history to be massive
 HISTFILESIZE=-1
-HISTSIZE=-1
 
 alias vimdiff='nvim -d'
 alias icat='kitty +kitten icat'
-
 alias sql='q -O -T -d, -H'
+alias ve='python3 -m venv ./.venv'
+alias va='source ./.venv/bin/activate'
 
 function vim() {
     echo "opeing nvim: $@"
@@ -34,10 +34,11 @@ function vim() {
 if [ "$ENVIRONMENT_COMPUTER" == "WORK" ]
 then
     # These paths are only relevent at work
-    PATH=$PATH:/home/wmischlewski/gitrepos/hackerscripts
-    PATH=$PATH:/home/wmischlewski/large-bin
-    PATH=$PATH:/home/wmischlewski/bin
-    export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre/
+    PATH=$PATH:/Users/will/bin
+    CLIPBOARD_COMMAND='pbcopy'
+
+    source ~/Documents/setup/secrets.sh
+
 fi
 if [ "$ENVIRONMENT_COMPUTER" == "HOME" ]
 then
@@ -46,14 +47,15 @@ then
     PATH=$PATH:/home/will/bin
     PATH=$PATH:/home/will/scripts
     PATH=$PATH:/home/will/.local/bin
+    HISTSIZE=-1
+    CLIPBOARD_COMMAND='xclip -in -selection \"clipboard\"'
 fi
 
-alias  thumb="python3 -c 'print(\"\U0001F44D\")' | xclip -in -selection \"clipboard\""
-alias  panda="python3 -c 'print(\"\U0001F43C\")' | xclip -in -selection \"clipboard\""
-alias bottle="python3 -c 'print(\"\U0001F37E\")' | xclip -in -selection \"clipboard\""
-alias   cool="python3 -c 'print(\"\U0001F60E\")' | xclip -in -selection \"clipboard\""
-
-alias clip="xclip -in -selection \"clipboard\""
+alias  thumb="python3 -c 'print(\"\U0001F44D\")' | $CLIPBOARD_COMMAND"
+alias  panda="python3 -c 'print(\"\U0001F43C\")' | $CLIPBOARD_COMMAND"
+alias bottle="python3 -c 'print(\"\U0001F37E\")' | $CLIPBOARD_COMMAND"
+alias   cool="python3 -c 'print(\"\U0001F60E\")' | $CLIPBOARD_COMMAND"
+alias clip=$CLIPBOARD_COMMAND
 
 export VISUAL=nvim
 export EDITOR="$VISUAL"
