@@ -28,7 +28,7 @@ function vim() {
     then
         eval "nvim $@"
     else
-        eval "nvr --remote $@"
+        eval "nvr --remote --servername $NVIM $@"
     fi
 }
 if [ "$ENVIRONMENT_COMPUTER" == "WORK" ]
