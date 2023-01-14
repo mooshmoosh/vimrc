@@ -221,6 +221,14 @@ def tabCount():
 def switchToTab ( i ):
     vim.current.tabpage = vim.tabpages[i]
 
+def setClipboard(value):
+    value = value.replace('\\', '\\\\')
+    value = value.replace('"', '\\"')
+    vim.command('let @+="' + value + '"')
+
+def getClipboard():
+    return vim.eval('@+')
+
 def findLine(lineContent):
     for (i, l) in enumerate(vim.current.buffer):
         if l == lineContent:
@@ -499,6 +507,13 @@ nnoremap <leader>ss :set invspell<CR>
 "}}}
 "Organisational mappings
 "{{{
+python3 << endpython3
+def copyCurrentFilename():
+    setClipboard(getFilename())
+    print("Filename copied: " + getFilename())
+
+endpython3
+
 "open a file from the current directory
 nnoremap <leader>oi :edit %:p:h/
 
@@ -530,6 +545,8 @@ nnoremap <leader>oea :!markdown_to_anki.py '/home/will/Documents/anki-to-import.
 "move the current line to the end of the file
 nnoremap <leader>oe :+1mark0<CR>:m$<CR>`0
 vnoremap <leader>oe :+1mark0<CR>:m$<CR>`0
+
+nnoremap <leader>kf :py3 copyCurrentFilename()<CR>
 
 "}}}
 "Remappings specifically for python3 code
