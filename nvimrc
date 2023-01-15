@@ -103,7 +103,9 @@ Plug 'davidhalter/jedi-vim'
 "Black code formatting
 Plug 'psf/black'
 let g:black_linelength = 100
-"autocmd BufWritePre *.py :Black
+if $ENVIRONMENT_COMPUTER == "HOME"
+    autocmd BufWritePre *.py :Black
+endif
 
 "Always reload files if they change on disk but not in vim?
 Plug 'djoshea/vim-autoread'
@@ -1273,7 +1275,7 @@ function! VimwikiLinkHandler(link)
 endfunction
 
 " This is to prevent vimwiki from mapping wc
-nnoremap <leader><leader>VimwikiColorizeNormal <Plug>VimwikiColorizeNormal
+nnoremap <leader>wVimwikiColorizeNormal <Plug>VimwikiColorizeNormal
 " Open the calendar
 nnoremap <leader>wc :Calendar<CR>
 "next day in diary
