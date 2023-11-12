@@ -1,0 +1,56 @@
+#!/bin/bash
+
+export XDG_CONFIG_HOME=/home/will/extra_configs/python-lsp-nvim/config
+export XDG_DATA_HOME=/home/will/extra_configs/python-lsp-nvim/data
+mkdir -p $XDG_CONFIG_HOME/nvim/
+
+cat > $XDG_CONFIG_HOME/nvim/init.lua <<EOF
+-- packer setup {{{
+require('packer').startup(function(use)
+    use 'wbthomason/packer.nvim'
+    use 'neovim/nvim-lspconfig'
+end)
+-- }}}
+-- LSP setup {{{
+require'lspconfig'.jedi_language_server.setup{}
+
+-- Use LspAttach autocommand to only map the following keys
+-- after the language server attaches to the current buffer
+vim.api.nvim_create_autocmd('LspAttach', {
+  group = vim.api.nvim_create_augroup('UserLspConfig', {}),
+  callback = function(ev)
+    -- Enable completion triggered by <c-x><c-o>
+    vim.bo[ev.buf].omnifunc = 'v:lua.vim.lsp.omnifunc'
+
+    -- Buffer local mappings.
+    local opts = { buffer = ev.buf }
+    vim.keymap.set('n', '<leader>d', vim.lsp.buf.definition, opts)
+    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+    vim.keymap.set('n', '<leader>r', vim.lsp.buf.rename, opts)
+    vim.keymap.set({ 'n', 'v' }, '<leader>ca', vim.lsp.buf.code_action, opts)
+    vim.keymap.set('n', '<leader>N', vim.lsp.buf.references, opts)
+  end,
+})
+-- }}}
+-- General setup: {{{
+vim.g.mapleader = ','
+vim.keymap.set('i', 'kj', '<ESC>')
+vim.keymap.set('n', '<leader>q', '<cmd>bdelete<CR>')
+vim.keymap.set('n', '<leader>/', '<cmd>bnext<CR>')
+vim.keymap.set('n', '<leader>,', '<cmd>bNext<CR>')
+
+clipboard_commands = {'y', 'yy', 'p', 'P'}
+for i=1,#clipboard_commands do
+    vim.keymap.set('n', clipboard_commands[i], '"+' .. clipboard_commands[i])
+    vim.keymap.set('v', clipboard_commands[i], '"+' .. clipboard_commands[i])
+end
+-- }}}
+EOF
+
+if [ ! -d "$XDG_DATA_HOME/nvim/site/pack/packer/start/packer.nvim/.git" ]
+then
+    echo "Packer is not present... Downloading"
+    git clone --depth 1 https://github.com/wbthomason/packer.nvim $XDG_DATA_HOME/nvim/site/pack/packer/start/packer.nvim
+fi
+source ~/pythonvenv/bin/activate
+nvim "$@"

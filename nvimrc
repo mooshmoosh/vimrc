@@ -1,5 +1,5 @@
 "Preliminiaries. Set up core vim settings
-"{{{
+""{{{",
 
 syntax on
 set shiftwidth=4
@@ -21,11 +21,12 @@ let maplocalleader=" "
 hi MatchParen ctermbg=1 guibg=lightblue
 let $IN_NVIM_TERMINAL="YES"
 au CursorHold,CursorHoldI * checktime
+" need to set python explicitly
+let g:python3_host_prog="/usr/bin/python3"
 "}}}
 " vim-plug setup
 "{{{
 call plug#begin('~/.config/nvim/plugged')
-
 " A better file browser
 Plug 'scrooloose/nerdtree'
 " fuzzy searching
@@ -74,7 +75,7 @@ let g:codi#interpreters = {
        \ }
 Plug 'marcweber/vim-addon-mw-utils'
 Plug 'tomtom/tlib_vim'
-Plug 'garbas/vim-snipmate'
+"Plug 'garbas/vim-snipmate'
 Plug 'jeetsukumaran/vim-buffergator'
 " <leader>b should open/close the buffer menu, not just open it
 nnoremap <leader>b :BuffergatorToggle<CR>
@@ -102,14 +103,19 @@ Plug 'davidhalter/jedi-vim'
 
 "Black code formatting
 Plug 'psf/black'
-let g:black_linelength = 100
-if $ENVIRONMENT_COMPUTER == "HOME"
-    autocmd BufWritePre *.py :Black
-endif
+"let g:black_linelength =
+"if $ENVIRONMENT_COMPUTER == "HOME"
+"    autocmd BufWritePre *.py :Black
+"endif
+"command! Black python3 runBlack()
+autocmd BufWritePre *.py :Black
 
-"Always reload files if they change on disk but not in vim?
-Plug 'djoshea/vim-autoread'
-set updatetime=100
+" Syntastic
+Plug 'vim-syntastic/syntastic'
+
+"Rust plugin
+Plug 'rust-lang/rust.vim'
+let g:rustfmt_autosave = 1
 
 call plug#end()
 "}}}
@@ -559,6 +565,10 @@ test_module = ""
 def runPythonUnitTests(debugger=False):
     global test_module
     filetype = getFileType()
+    if os.system('which pytest') == 0:
+        test_command = "pytest "
+    else:
+        test_command = "python3 -m unittest discover "
     if filetype == 'py':
         if os.path.isfile("manage.py"):
             # If manage.py exists in the current directory, then this is a django project
@@ -568,9 +578,9 @@ def runPythonUnitTests(debugger=False):
                 runShellCommandIntoNewBuffer("python3 manage.py test " + test_module)
         else:
             if debugger:
-                vim.command("VBGstartPDB3 python3 -m unittest discover " + test_module)
+                vim.command("VBGstartPDB3 " + test_command + test_module)
             else:
-                runShellCommandIntoNewBuffer("python3 -m unittest discover " + test_module)
+                runShellCommandIntoNewBuffer(test_command + test_module)
         return True
     return False
 RunUnitTestListeners.append(runPythonUnitTests)
@@ -923,6 +933,18 @@ def vim_async(inner_function):
     def wrapper(*args, **kwargs):
         return vim.async_call(inner_function, *args, **kwargs)
     return wrapper
+
+import datetime
+last_run = datetime.datetime.now()
+def runBlack():
+    global last_run
+    now = datetime.datetime.now()
+    if (now - last_run).total_seconds() > 1:
+        last_run = now
+        filetype = getFileType()
+        if filetype == "py":
+            subprocess.run(["/usr/bin/python3", "-m", "black", getFilename()])
+
 
 @vim_async
 def executeCurrentFileAsScript():

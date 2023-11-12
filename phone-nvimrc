@@ -1,0 +1,59 @@
+"basic settings {{{
+set foldmethod=marker
+set nocompatible
+filetype plugin on
+syntax on
+let mapleader=","
+set expandtab
+set softtabstop=4
+set shiftwidth=4
+"}}}
+"plugins {{{
+call plug#begin()
+" Vimwiki
+Plug 'vimwiki/vimwiki'
+let g:vimwiki_list = [{'syntax': 'markdown', 'ext': '.md'}]
+
+" A calendar plugin for wiki
+Plug 'mattn/calendar-vim'
+
+" Jedi is an alternative language server
+Plug 'davidhalter/jedi-vim'
+" Open the calendar
+nnoremap <leader>wc :Calendar<CR>
+call plug#end()
+"}}}
+" Python code {{{
+python3 << endpython3
+import vim
+import neovim
+
+def auto_save():
+    if not vim.current.buffer.name.endswith('__Calendar'):
+        vim.command('silent write')
+
+# run tests
+def run_tests():
+    vim.command('!python -m unittest')
+
+endpython3
+"}}}
+"Remappings {{{
+nnoremap <leader>vs :source ~/.config/nvim/init.vim<CR>
+nnoremap <leader>tn :tabn<CR>
+nnoremap <leader>tp :tabN<CR>
+nnoremap <leader>tt :edit term:///bin/bash<CR>
+nnoremap <leader>bn :bnext<CR>
+nnoremap <leader>mc :python3 run_tests()<CR>
+nnoremap <leader>q :bdelete<CR>
+tnoremap <C-k><C-j> <C-\><C-n>
+inoremap kj <ESC>
+
+" trigger `autoread` when files changes on disk
+set autoread
+autocmd FocusGained,BufEnter,CursorHold,CursorHoldI * if mode() != 'c' | checktime | endif
+" notification after file change
+autocmd FileChangedShellPost * echohl WarningMsg | echo "File changed on disk. Buffer reloaded." | echohl None
+autocmd TextChanged,TextChangedI /home/* python3 auto_save()
+"autocmd InsertLeave /home/* silent write
+"}}}
