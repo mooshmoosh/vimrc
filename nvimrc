@@ -32,6 +32,7 @@ Plug 'scrooloose/nerdtree'
 " fuzzy searching
 Plug 'ctrlpvim/ctrlp.vim'
 let g:ctrlp_user_command = ['.git/', 'git --git-dir=%s/.git ls-files -oc --exclude-standard']
+let g:ctrlp_working_path_mode = 0
 let g:ctrlp_follow_symlinks = 1
 " Highligh the corresponding html tag
 Plug 'valloric/MatchTagAlways'
@@ -74,8 +75,16 @@ let g:codi#interpreters = {
            \ },
        \ }
 Plug 'marcweber/vim-addon-mw-utils'
-Plug 'tomtom/tlib_vim'
-"Plug 'garbas/vim-snipmate'
+" Plug 'garbas/vim-snipmate'
+
+" ultisnips is a plugin for creating and using snipets
+Plug 'SirVer/ultisnips'
+let g:UltiSnipsSnippetStorageDirectoryForUltiSnipsEdit = '~/.config/nvim/snipets'
+let g:UltiSnipsSnippetDirectories=["~/.config/nvim/snipets"]
+let g:UltiSnipsEditSplit = 'vertical'
+let g:UltiSnipsExpandOrJumpTrigger='<tab>'
+nnoremap <leader>ue :UltiSnipsEdit<CR>
+
 Plug 'jeetsukumaran/vim-buffergator'
 " <leader>b should open/close the buffer menu, not just open it
 nnoremap <leader>b :BuffergatorToggle<CR>
@@ -103,11 +112,11 @@ Plug 'davidhalter/jedi-vim'
 
 "Black code formatting
 Plug 'psf/black'
-"let g:black_linelength =
-"if $ENVIRONMENT_COMPUTER == "HOME"
-"    autocmd BufWritePre *.py :Black
-"endif
-"command! Black python3 runBlack()
+if $ENVIRONMENT_COMPUTER == "HOME"
+    let g:black_linelength = 100
+else
+    let g:black_linelength = 120
+endif
 autocmd BufWritePre *.py :Black
 
 " Syntastic
@@ -116,6 +125,13 @@ Plug 'vim-syntastic/syntastic'
 "Rust plugin
 Plug 'rust-lang/rust.vim'
 let g:rustfmt_autosave = 1
+
+" Added for terraform
+Plug 'hashivim/vim-terraform'
+Plug 'vim-syntastic/syntastic'
+Plug 'neomake/neomake'
+Plug 'Shougo/deoplete.nvim'
+Plug 'juliosueiras/vim-terraform-completion'
 
 call plug#end()
 "}}}
@@ -149,6 +165,10 @@ createDebugLineListeners = []
 # Similar to createDebugLineListeners, except these just print messages, not variables
 createPrintLineListeners = []
 
+# Setup config for values that can change between my enfironments
+with open(os.path.expanduser('~/.vimconfig.json'), 'r') as f:
+    config = json.loads(f.read())
+
 def setCursor( line, col ):
     vim.current.window.cursor = ( line + 1, col )
 
@@ -166,6 +186,9 @@ def getRow():
 def getCol():
     (x,y) = vim.current.window.cursor
     return y
+
+def getSelectedRange():
+    return vim.current.range.start, vim.current.range.end
 
 def getLineCount():
     return len(vim.current.buffer)
@@ -323,26 +346,26 @@ def windowsWithBuffersNameAreOpen(names):
 def getAltBufferNumber():
     current_buffer_number = vim.current.buffer.number
     try:
-        vim.command('b#')
+        vim.command('b!#')
         result = vim.current.buffer.number
-        vim.command('b#')
+        vim.command('b!#')
     except:
         result = getPreviousBufferNumber()
     return result
 
 def getPreviousBufferNumber():
-    vim.command('bNext')
+    vim.command('bNext!')
     result = vim.current.buffer.number
     try:
-        vim.command('bnext')
+        vim.command('bnext!')
     except Exception as e:
         print("exception raised while getting previous buffer number")
         print(e)
     return result
 
 def makePreviousBufferAltBuffer():
-    vim.command('bprevious')
-    vim.command('bnext')
+    vim.command('bprevious!')
+    vim.command('bnext!')
 
 def switchToBufferNumber(number):
     if number is None:
@@ -427,6 +450,11 @@ def exportToAnki():
         print("No previous export, creating")
         lines = []
 
+def getSelectionRange():
+    return [
+        vim.current.buffer.api.get_mark("<"),
+        vim.current.buffer.api.get_mark(">")]
+
 endpython3
 "}}}
 "simple remappings
@@ -440,6 +468,7 @@ inoremap <S-Tab> <C-V><Tab>
 " 'e' that move the curser to the next point to insert text. I can then enter
 " the text, hit ctrl-Space, and be at the next point.
 inoremap <C-Space> <ESC>@ei
+nnoremap <C-Space> :VimwikiToggleListItem<CR>
 
 "Navigation shortcuts
 inoremap kj <ESC>
@@ -497,7 +526,11 @@ autocmd BufWritePre * :silent! %s/\(\.*\)\s\+$/\1
 " <leader>tt opens / switches to a terminal.
 nnoremap <leader>tt :python3 switchToBufferWithName('term:', 'term:///bin/bash', '/bin/bash')<CR>A
 " <leader>tp opens / switches to a new terminal with python prompt
-nnoremap <leader>tp :python3 switchToBufferWithName('term:', 'term:///usr/bin/ipython', '/usr/bin/ipython')<CR>A
+if $ENVIRONMENT_COMPUTER == "HOME"
+    nnoremap <leader>tp :python3 switchToBufferWithName('term:', 'term:///usr/bin/ipython', '/usr/bin/ipython')<CR>A
+else
+    nnoremap <leader>tp :python3 switchToBufferWithName('term:', 'term:///opt/homebrew/bin/ipython', '/opt/homebrew/bin/ipython')<CR>A
+endif
 nnoremap <leader>tn :edit term://bash<CR>A
 " Similarly, but split window
 nnoremap <leader>tw :vsplit term://bash<CR>
@@ -512,6 +545,21 @@ nnoremap <leader>fs :python3 launchFirefoxAndSearch()<CR>
 " to use it occasionally.
 nnoremap <leader>ss :set invspell<CR>
 
+" code to turn logs that are copy pasted from cloudwatch into something I can
+" paste into slack
+python3 << endpython3
+cloudwatch_log_line_pattern = re.compile(r'\s*[\d\-T\:\.+]+\s+(.*)')
+def fixLogs():
+    for i, line in enumerate(vim.current.buffer):
+        match = cloudwatch_log_line_pattern.match(line)
+        if match:
+            vim.current.buffer[i] = match.group(1)
+        else:
+            vim.current.buffer[i] = ""
+
+endpython3
+nnoremap <leader>fl :python3 fixLogs()<CR>
+
 "}}}
 "Organisational mappings
 "{{{
@@ -519,6 +567,34 @@ python3 << endpython3
 def copyCurrentFilename():
     setClipboard(getFilename())
     print("Filename copied: " + getFilename())
+
+def copyCurrentShortFilename():
+    filename = getFilename()
+    with subprocess.Popen(['pwd'], stderr=subprocess.PIPE, stdout=subprocess.PIPE, shell=True) as p:
+        current_dir = p.stdout.read().decode().strip()
+    if filename.startswith(current_dir):
+        result = filename[len(current_dir + '/'):]
+    else:
+        result = filename
+    setClipboard(result)
+    print("Filename copied: " + result)
+
+
+
+def copyGithubLink():
+    start, end = getSelectedRange()
+    start += 1
+    if end <= start:
+        linerange = f"#L{start}"
+    else:
+        linerange = f"#L{start}-L{end}"
+    filename = getFilename().split('/')
+    repo = filename[4]
+    branch = config['repo_main_branches'].get(repo, 'development')
+    filename = "/".join(filename[5:])
+    url = f"{config['base_github_link']}/{repo}/blob/{branch}/{filename}{linerange}"
+    setClipboard(url)
+    print(f"github link copied: {url}")
 
 endpython3
 
@@ -548,13 +624,16 @@ nnoremap <leader>od :chdir %:p:h<CR>
 
 "Export the current set of notes as anki cards
 "I don't really use this any more
-nnoremap <leader>oea :!markdown_to_anki.py '/home/will/Documents/anki-to-import.csv' '%'<CR>
+"nnoremap <leader>oea :!markdown_to_anki.py '/home/will/Documents/anki-to-import.csv' '%'<CR>
 
 "move the current line to the end of the file
 nnoremap <leader>oe :+1mark0<CR>:m$<CR>`0
 vnoremap <leader>oe :+1mark0<CR>:m$<CR>`0
 
 nnoremap <leader>kf :py3 copyCurrentFilename()<CR>
+nnoremap <leader>ks :py3 copyCurrentShortFilename()<CR>
+
+vnoremap <leader>kg :py3 copyGithubLink()<CR>
 
 "}}}
 "Remappings specifically for python3 code
@@ -969,6 +1048,14 @@ def launchCurrentFileInDebugger():
     else:
         vim.command("VBGstartPDB3 " + getFilename())
 
+def executeCommandIntoNewBuffer(command):
+    with subprocess.Popen(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE) as p:
+        result = p.stdout.read().decode()
+        result += "\n"
+        result += p.stderr.read().decode()
+    vim.command('checktime')
+    newBuffer(initial_text=result)
+
 def executeCurrentScriptIntoNewBuffer():
     if getLine(0).startswith('#!'):
         # get the environment from shebang
@@ -978,12 +1065,7 @@ def executeCurrentScriptIntoNewBuffer():
     else:
         print("No shebang found")
         return
-    with subprocess.Popen(environment + [getFilename()], stderr=subprocess.PIPE, stdout=subprocess.PIPE) as p:
-        result = p.stdout.read().decode()
-        result += "\n"
-        result += p.stderr.read().decode()
-    vim.command('checktime')
-    newBuffer(initial_text=result)
+    executeCommandIntoNewBuffer(environment + [getFilename()])
 
 def pipeStringToCommand(data, command):
     if isinstance(command, str):
@@ -1074,7 +1156,7 @@ nnoremap <leader>gc :!git commit<CR>
 " git diff
 nnoremap <leader>gd :vsplit term:///bin/bash<CR>Agit diff<CR>
 " git blame on current file
-nnoremap <leader>gb :!git blame %<CR>
+nnoremap <leader>gb :python3 executeCommandIntoNewBuffer(['git', 'blame', getFilename()])<CR>
 
 "Add an include/import
 nnoremap <leader>c# :python3 addToIncludes()<CR>
@@ -1097,10 +1179,6 @@ nnoremap <leader>co :python3 createDebugLine()<CR>
 
 " print - create a debugging line that prints the current line
 nnoremap <leader>cp :python3 createPrintLine()<CR>
-
-" Format List - used to put a comma separated list of values on individual
-" lines
-nmap <leader>fl f,wi<CR><ESC>
 
 "execute the current file as a script
 nnoremap <leader>rr :w<CR>:python3 executeCurrentScriptIntoNewBuffer()<CR>
@@ -1304,6 +1382,9 @@ nnoremap <leader>wc :Calendar<CR>
 nnoremap <leader>w<Down> <Plug>VimwikiDiaryNextDay
 "previous day in diary
 nnoremap <leader>w<Up> <Plug>VimwikiDiaryPrevDay
+"new project page (Copy the text within [], go to the new page, insert the
+"copied text as a header
+nnoremap <leader>wnp yi[:VimwikiFollowLink<CR>i# <ESC>po<CR><ESC>
 "}}}
 " Configure vebugger
 "{{{
@@ -1363,7 +1444,7 @@ endpython3
 nnoremap <leader>td :python3 typeDateHere()<CR>
 
 " record a line as completed
-nnoremap <leader>tc :python3 ArchiveCompletedTask()<CR>
+nmap <leader>tc :python3 ArchiveCompletedTask()<CR>
 
 " Sort all lines by their task name, not the dates or x at the start
 " I use this to merge to do text files when I have a conflict between my
@@ -1404,4 +1485,9 @@ nnoremap <localleader>ss :sort /+[a-zA-Z]*/ r<CR>:sort /@[a-zA-Z]*/ r<CR>:sort /
 "         return ['hello', 'world', 'blah']
 "     endif
 " endfunction
+
+" A shortcut to send code to a terminal window
+nnoremap <leader>ce mpG?#FROMHERE<CR>j0yG<C-w><C-w>a<C-c><C-\><C-n>pa<CR><CR><C-\><C-n><C-w><C-w>`p
+
+
 "}}}

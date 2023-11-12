@@ -37,6 +37,23 @@ if [ "$ENVIRONMENT_COMPUTER" == "WORK" ]
 then
     # These paths are only relevent at work
     PATH=$PATH:/Users/will/bin
+    PATH=$PATH:/Users/will/Library/Python/3.10/bin
+    PATH=$PATH:/usr/local/bin
+    PATH=$PATH:/Users/will/go/bin
+    if [ "$(sysctl -n sysctl.proc_translated)" == "1" ]
+    then
+        # We're running in rosetta mode
+        export ROSETTA_MODE="1"
+        PATH="/usr/local/Homebrew/bin:"$PATH
+    else
+        # Rosetta mode is off
+        export ROSETTA_MODE="0"
+        PATH="/opt/homebrew/bin:"$PATH
+    fi
+
+    alias brew_x86='arch --x86_64 /usr/local/Homebrew/bin/brew'
+    alias brew_arm='arch --arm64 /opt/homebrew/bin/brew'
+
     CLIPBOARD_COMMAND='pbcopy'
 
     source ~/Documents/setup/secrets.sh
@@ -53,10 +70,12 @@ then
     CLIPBOARD_COMMAND='xclip -in -selection \"clipboard\"'
 fi
 
+alias    ,cd='cd ./"$(ls | fzf)"'
 alias  thumb="python3 -c 'print(\"\U0001F44D\")' | $CLIPBOARD_COMMAND"
 alias  panda="python3 -c 'print(\"\U0001F43C\")' | $CLIPBOARD_COMMAND"
 alias bottle="python3 -c 'print(\"\U0001F37E\")' | $CLIPBOARD_COMMAND"
 alias   cool="python3 -c 'print(\"\U0001F60E\")' | $CLIPBOARD_COMMAND"
+alias cowboy="python3 -c 'print(\"\U0001f920\")' | $CLIPBOARD_COMMAND"
 alias clip=$CLIPBOARD_COMMAND
 
 export VISUAL=nvim
