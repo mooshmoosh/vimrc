@@ -9,6 +9,16 @@ cat > $XDG_CONFIG_HOME/nvim/init.lua <<EOF
 require('packer').startup(function(use)
     use 'wbthomason/packer.nvim'
     use 'neovim/nvim-lspconfig'
+    use {'nvim-tree/nvim-tree.lua',
+      requires = {
+        'nvim-tree/nvim-web-devicons',
+
+      }
+    }
+    use {
+      'nvim-telescope/telescope.nvim', tag = '0.1.4',
+      requires = { {'nvim-lua/plenary.nvim'} }
+    }
 end)
 -- }}}
 -- LSP setup {{{
@@ -33,18 +43,51 @@ vim.api.nvim_create_autocmd('LspAttach', {
 })
 -- }}}
 -- General setup: {{{
+-- Key mappings {{{
 vim.g.mapleader = ','
 vim.keymap.set('i', 'kj', '<ESC>')
 vim.keymap.set('n', '<leader>q', '<cmd>bdelete<CR>')
 vim.keymap.set('n', '<leader>/', '<cmd>bnext<CR>')
 vim.keymap.set('n', '<leader>,', '<cmd>bNext<CR>')
-
+vim.keymap.set('n', '<leader>?', '<cmd>tnext<CR>')
+vim.keymap.set('n', '<leader><', '<cmd>tNext<CR>')
+-- the start of the command to open a file in the same directory as the current file
+vim.keymap.set('n', '<leader>oi', ':edit %:p:h/')
+vim.keymap.set('n', '<leader>tt', '<cmd>edit term:///bin/bash<CR>a')
+vim.keymap.set('t', '<C-k><C-j>', '<C-\\\\><c-n>')
+-- open the file tree explorer
+vim.keymap.set('n', '<leader>nt', ':NvimTreeToggle<CR>')
+-- ctrl-x ctrl-o to open omnicomplete is obnouxious. Tab weould be nice, but tab tab is ok too
+vim.keymap.set('i', '<tab><tab>', '<c-x><c-o>')
+-- clipboard fixes
 clipboard_commands = {'y', 'yy', 'p', 'P'}
 for i=1,#clipboard_commands do
     vim.keymap.set('n', clipboard_commands[i], '"+' .. clipboard_commands[i])
     vim.keymap.set('v', clipboard_commands[i], '"+' .. clipboard_commands[i])
 end
+--}}}
+-- Options {{{
+vim.cmd("set number")
+--}}}
 -- }}}
+-- Plugin setup {{{
+-- Setup nvim tree {{{
+-- disable netrw at the very start of your init.lua
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+-- set termguicolors to enable highlight groups
+vim.opt.termguicolors = true
+require("nvim-tree").setup()
+-- }}}
+-- Setup telescope (fuzzy finding)
+local builtin = require('telescope.builtin')
+vim.keymap.set('n', '<C-p>', builtin.find_files, {})
+vim.keymap.set('n', '<leader>gg', builtin.live_grep, {})
+-- Not sure what these do, or if we needthem
+--vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
+--vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
+-- }}}
+--}}}
 EOF
 
 if [ ! -d "$XDG_DATA_HOME/nvim/site/pack/packer/start/packer.nvim/.git" ]
