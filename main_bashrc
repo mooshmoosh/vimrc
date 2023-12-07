@@ -40,6 +40,7 @@ then
     PATH=$PATH:/Users/will/Library/Python/3.10/bin
     PATH=$PATH:/usr/local/bin
     PATH=$PATH:/Users/will/go/bin
+    PATH=$PATH:/Users/will/.local/bin
     if [ "$(sysctl -n sysctl.proc_translated)" == "1" ]
     then
         # We're running in rosetta mode
