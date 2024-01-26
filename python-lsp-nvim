@@ -95,8 +95,8 @@ vim.keymap.set('n', '<leader>tt', '<cmd>edit term:///bin/bash<CR>a')
 vim.keymap.set('t', '<C-k><C-j>', '<C-\\\\><c-n>')
 -- open the file tree explorer
 vim.keymap.set('n', '<leader>nt', ':NvimTreeToggle<CR>')
--- ctrl-x ctrl-o to open omnicomplete is obnouxious. Tab weould be nice, but tab tab is ok too
-vim.keymap.set('i', '<tab><tab>', '<c-x><c-o>')
+-- ctrl-x ctrl-o to open omnicomplete is obnouxious. Tab weould be nice, but leader tab is ok too
+vim.keymap.set('i', '<leader><tab>', '<c-x><c-o>')
 -- clipboard fixes
 clipboard_commands = {'y', 'p', 'P'}
 for i=1,#clipboard_commands do
@@ -122,6 +122,8 @@ vim.keymap.set('n', '<leader>ss', toggle_spell_check_highlighting)
 --}}}
 -- Options {{{
 vim.cmd("set number")
+vim.cmd("set expandtab")
+vim.cmd("set shiftwidth=4")
 --}}}
 -- }}}
 -- Triggers and autocommands {{{
@@ -148,6 +150,7 @@ vim.keymap.set('n', '<leader>gg', builtin.live_grep, {})
 --vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
 -- Black formatter
 vim.g.black_linelength = 120
+vim.g.python3_host_prog = "$HOME/pythonvenv/bin/python"
 -- }}}
 EOF
 
@@ -156,7 +159,7 @@ then
     echo "Packer is not present... Downloading"
     git clone --depth 1 https://github.com/wbthomason/packer.nvim $XDG_DATA_HOME/nvim/site/pack/packer/start/packer.nvim
 fi
-
+export PATH=$PATH:$HOME/pythonvenv/bin/
 if [ -f pyproject.toml ]
 then
     poetry run nvim "$@"
