@@ -77,13 +77,21 @@ function toggle_spell_check_highlighting()
     -- TODO implement this
 end
 
+function exit_curent_buffer()
+    if (string.sub(get_current_filename(), 0, 7) == "term://") then
+        vim.cmd("bdelete!")
+    else
+        vim.cmd("bdelete")
+    end
+end
+
 -- }}}
 -- General setup: {{{
 -- Key mappings {{{
 vim.g.mapleader = ','
 vim.keymap.set('i', 'kj', '<ESC>')
 -- quitting or switching buffers / tabs
-vim.keymap.set('n', '<leader>q', '<cmd>bdelete<CR>') -- TODO Make this bdelete! if the current buffer is a term:/// one
+vim.keymap.set('n', '<leader>q', exit_curent_buffer)
 vim.keymap.set('n', '<leader>/', '<cmd>bnext<CR>')
 vim.keymap.set('n', '<leader>,', '<cmd>bNext<CR>')
 vim.keymap.set('n', '<leader>.', '<cmd>buffer #<CR>')
