@@ -54,11 +54,11 @@ function get_current_filename()
 end
 
 function get_line(number)
-    return vim.api.nvim_buf_get_lines(0, number-1, numer, false)
+    return vim.api.nvim_buf_get_lines(0, number-1, number, false)
 end
 
 function get_position()
-    return vim.api.nvim_win_get_cursor()
+    return vim.api.nvim_win_get_cursor(0)
 end
 
 -- }}}
