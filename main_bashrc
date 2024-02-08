@@ -58,6 +58,7 @@ then
     CLIPBOARD_COMMAND='pbcopy'
 
     source ~/Documents/setup/secrets.sh
+    export GITHUB_BASE_URL='https://github.com/HabitatEnergy/'
 
 fi
 if [ "$ENVIRONMENT_COMPUTER" == "HOME" ]
@@ -69,6 +70,7 @@ then
     PATH=$PATH:/home/will/.local/bin
     HISTSIZE=-1
     CLIPBOARD_COMMAND='xclip -in -selection \"clipboard\"'
+    GITHUB_BASE_URL='https://github.com/mooshmoosh/'
 fi
 
 alias    ,cd='cd ./"$(ls | fzf)"'
