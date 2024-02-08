@@ -54,7 +54,21 @@ function get_current_filename()
 end
 
 function get_line(number)
-    return vim.api.nvim_buf_get_lines(0, number-1, number, false)
+    return vim.api.nvim_buf_get_lines(0, number-1, number, false)[1]
+end
+
+function insert_line(number, text)
+    vim.api.nvim_buf_set_lines(0, number-1, number-1, 0, {text})
+end
+
+function get_first_line_matching(patterns)
+    for i=0, vim.api.nvim_buf_line_count(0), 1 do
+        for j=1, #patterns, 1 do
+            if (string.match(vim.api.nvim_buf_get_lines(0, i, i+1, false)[1], patterns[j]) ~= nil) then
+                return i + 1
+            end
+        end
+    end
 end
 
 function get_position()
@@ -102,7 +116,7 @@ function copy_current_selection_as_github()
 end
 
 function split_line_into_paragraph()
-    local line = get_line(get_position()[1])
+    local line = get_line(get_position())
     -- TODO implement this
 end
 
@@ -117,6 +131,22 @@ function exit_curent_buffer()
         vim.cmd("bdelete")
     end
 end
+
+function add_import_to_current_file()
+    local import_name = vim.fn.input("which module to import? ")
+    if (import_name == "") then
+        return
+    end
+    local from_start, from_end = string.find(import_name, " from ")
+    if from_start == nil then
+        insert_line(get_first_line_matching({"import.*", "from.*import.*"}), "import " .. import_name)
+    else
+        import_value = string.sub(import_name, 1, from_start - 1)
+        module_name = string.sub(import_name, from_end + 1)
+        insert_line(get_first_line_matching({"import.*", "from.*import.*"}), "from " .. module_name .. " import " .. import_value)
+    end
+end
+
 
 -- }}}
 -- General setup: {{{
@@ -156,6 +186,8 @@ vim.keymap.set('n', 'ss', '"+dd')
 vim.keymap.set('n', 'yy', '"+yy')
 -- copy the current filename
 vim.keymap.set('n', '<leader>kf', copy_current_file_name)
+-- Add an import
+vim.keymap.set('n', '<leader>c#', add_import_to_current_file)
 -- copy the current selection as a github link
 vim.keymap.set('v', '<leader>kg', copy_current_selection_as_github)
 -- split the current line into a paragraph of smaller lines, each < 75 characters long
