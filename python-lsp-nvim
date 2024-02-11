@@ -57,6 +57,15 @@ function get_line(number)
     return vim.api.nvim_buf_get_lines(0, number-1, number, false)[1]
 end
 
+function get_lines(selected_range)
+    return vim.api.nvim_buf_get_lines(0, selected_range[1][1]-1, selected_range[2][1], false)
+end
+
+function get_selected_lines()
+    local selected_range = get_selection_range()
+    return get_lines(selected_range)
+end
+
 function set_line(number, text)
     vim.api.nvim_buf_set_lines(0, number-1, number, 0, {text})
 end
@@ -80,7 +89,12 @@ function get_position()
 end
 
 function get_selection_range()
-    return {vim.api.nvim_buf_get_mark(0, '<'), vim.api.nvim_buf_get_mark(0, '>')}
+    local start = vim.api.nvim_buf_get_mark(0, '<')
+    local end_mark = vim.api.nvim_buf_get_mark(0, '>')
+    if (end_mark[2] == 0) then
+        end_mark = {end_mark[1] - 1, #get_line(end_mark[1]-1)}
+    end
+    return {start, end_mark}
 end
 
 function split_string(str, separator)
@@ -91,6 +105,43 @@ function split_string(str, separator)
         end
     end
     return result
+end
+
+function split_indent_from_multiple_lines(lines)
+    if (#lines == 0) then
+        return {}
+    end
+    local minimum_indent, line = unpack(split_indent_from_line(lines[1]))
+    for i = 2, #lines, 1 do
+        indent, line = unpack(split_indent_from_line(lines[i]))
+        if (#indent < #minimum_indent) then
+            minimum_indent = indent
+        end
+    end
+    result = {}
+    for i = 1, #lines, 1 do
+        table.insert(result, {minimum_indent, string.sub(lines[i], #minimum_indent + 1)})
+    end
+    return result
+end
+
+function split_indent_from_line(text, force_indent)
+    if (force_indent == nil) then
+        local indent_position, nothing = string.find(text, "[^%s]")
+        if (indent_position == nil) then
+            return {"", ""}
+        else
+            return {
+                string.sub(text, 1, indent_position-1),
+                string.sub(text, indent_position)
+            }
+        end
+    else
+        return {
+            force_indent,
+            string.sub(text, #force_indent + 1)
+        }
+    end
 end
 
 -- }}}
@@ -151,20 +202,21 @@ function add_import_to_current_file()
     end
 end
 
-function comment_out_line(i)
-    local line = get_line(i)
+function comment_out_line(i, force_indent)
+    local indent, line = unpack(split_indent_from_line(get_line(i), force_indent))
     if (string.sub(line, 1, 2) == "# ") then
-        set_line(i, string.sub(line, 3))
+        set_line(i, indent .. string.sub(line, 3))
     else
-        set_line(i, '# ' .. line)
+        set_line(i, indent .. '# ' .. line)
     end
 end
 
 function comment_out_selection()
     exit_visual_mode()
     local selection_range = get_selection_range()
+    local lines = split_indent_from_multiple_lines(get_lines(selection_range))
     for i = selection_range[1][1], selection_range[2][1], 1 do
-        comment_out_line(i)
+        comment_out_line(i, lines[1][1])
     end
 end
 
