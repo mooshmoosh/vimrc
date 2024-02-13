@@ -23,7 +23,10 @@ require('packer').startup(function(use)
 end)
 -- }}}
 -- LSP setup {{{
+-- -- for python
 require'lspconfig'.jedi_language_server.setup{}
+-- -- for terraform
+require'lspconfig'.terraformls.setup{}
 
 -- Use LspAttach autocommand to only map the following keys
 -- after the language server attaches to the current buffer
@@ -176,11 +179,16 @@ function split_line_into_paragraph()
 end
 
 function toggle_spell_check_highlighting()
-    -- TODO implement this
+    vim.opt.spell = not(vim.opt.spell._value)
 end
 
 function exit_curent_buffer()
-    if (string.sub(get_current_filename(), 0, 7) == "term://") then
+    local current_filename = get_current_filename()
+    if (string.sub(current_filename, 0, 7) == "term://") then
+        -- You can't save terminal buffers, so we need to force quit them
+        vim.cmd("bdelete!")
+    elseif (current_filename == "") then
+        -- if a file has no name, we also can't save it, so we need to force quit these too.
         vim.cmd("bdelete!")
     else
         vim.cmd("bdelete")
@@ -238,6 +246,8 @@ vim.keymap.set('n', '<leader>?', '<cmd>tabnext<CR>')
 vim.keymap.set('n', '<leader><', '<cmd>tabNext<CR>')
 -- the start of the command to open a file in the same directory as the current file
 vim.keymap.set('n', '<leader>oi', ':edit %:p:h/')
+-- open a new blank file with no name, usefull for random scratch buffers
+vim.keymap.set('n', '<leader>oi', ':enew')
 vim.keymap.set('n', '<leader>tt', '<cmd>edit term:///bin/bash<CR>a')
 vim.keymap.set('t', '<C-k><C-j>', '<C-\\\\><c-n>')
 -- open the file tree explorer
@@ -276,9 +286,10 @@ vim.keymap.set('n', '<leader>le', split_line_into_paragraph)
 vim.keymap.set('n', '<leader>ss', toggle_spell_check_highlighting)
 --}}}
 -- Options {{{
-vim.cmd("set number")
-vim.cmd("set expandtab")
-vim.cmd("set shiftwidth=4")
+vim.opt.number = true
+vim.opt.expandtab = true
+vim.opt.shiftwidth = 4
+vim.opt.hlsearch = false
 --}}}
 -- }}}
 -- Triggers and autocommands {{{
