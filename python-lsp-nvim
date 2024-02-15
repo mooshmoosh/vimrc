@@ -247,7 +247,7 @@ vim.keymap.set('n', '<leader><', '<cmd>tabNext<CR>')
 -- the start of the command to open a file in the same directory as the current file
 vim.keymap.set('n', '<leader>oi', ':edit %:p:h/')
 -- open a new blank file with no name, usefull for random scratch buffers
-vim.keymap.set('n', '<leader>oi', ':enew')
+vim.keymap.set('n', '<leader>on', ':enew<CR>')
 vim.keymap.set('n', '<leader>tt', '<cmd>edit term:///bin/bash<CR>a')
 vim.keymap.set('t', '<C-k><C-j>', '<C-\\\\><c-n>')
 -- open the file tree explorer
