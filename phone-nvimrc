@@ -54,6 +54,6 @@ set autoread
 autocmd FocusGained,BufEnter,CursorHold,CursorHoldI * if mode() != 'c' | checktime | endif
 " notification after file change
 autocmd FileChangedShellPost * echohl WarningMsg | echo "File changed on disk. Buffer reloaded." | echohl None
-autocmd TextChanged,TextChangedI /home/* python3 auto_save()
+" autocmd TextChanged,TextChangedI /home/* python3 auto_save()
 "autocmd InsertLeave /home/* silent write
 "}}}

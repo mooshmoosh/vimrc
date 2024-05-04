@@ -20,6 +20,10 @@ require('packer').startup(function(use)
       requires = { {'nvim-lua/plenary.nvim'} }
     }
     use 'psf/black'
+    use {
+      'folke/trouble.nvim',
+      requires = { "nvim-tree/nvim-web-devicons" },
+    }
 end)
 -- }}}
 -- LSP setup {{{
@@ -27,6 +31,10 @@ end)
 require'lspconfig'.jedi_language_server.setup{}
 -- -- for terraform
 require'lspconfig'.terraformls.setup{}
+-- -- for rust
+-- this one also requires the rust-analyzer to be installed (pacman -S rust-analyzer)
+require'lspconfig'.rust_analyzer.setup{}
+-- --
 
 -- Use LspAttach autocommand to only map the following keys
 -- after the language server attaches to the current buffer
@@ -42,7 +50,8 @@ vim.api.nvim_create_autocmd('LspAttach', {
     vim.keymap.set('n', '<leader>D', vim.lsp.buf.implementation, opts)
     vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
     vim.keymap.set('n', '<leader>r', vim.lsp.buf.rename, opts)
-    vim.keymap.set({ 'n', 'v' }, '<leader>ca', vim.lsp.buf.code_action, opts)
+    vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
+    vim.keymap.set('v', '<leader>ca', vim.lsp.buf.code_action, opts)
     vim.keymap.set('n', '<leader>N', vim.lsp.buf.references, opts)
   end,
 })
@@ -184,14 +193,15 @@ end
 
 function exit_curent_buffer()
     local current_filename = get_current_filename()
+    local current_buffer_id = vim.api.nvim_get_current_buf()
     if (string.sub(current_filename, 0, 7) == "term://") then
         -- You can't save terminal buffers, so we need to force quit them
-        vim.cmd("bdelete!")
+        vim.api.nvim_buf_delete(current_buffer_id, {force = 1})
     elseif (current_filename == "") then
         -- if a file has no name, we also can't save it, so we need to force quit these too.
-        vim.cmd("bdelete!")
+        vim.api.nvim_buf_delete(current_buffer_id, {force = 1})
     else
-        vim.cmd("bdelete")
+        vim.api.nvim_buf_delete(current_buffer_id, {})
     end
 end
 
@@ -284,12 +294,15 @@ vim.keymap.set('v', '<leader>kg', copy_current_selection_as_github)
 vim.keymap.set('n', '<leader>le', split_line_into_paragraph)
 -- Toggle spell check
 vim.keymap.set('n', '<leader>ss', toggle_spell_check_highlighting)
+-- Toggle Opening the trouble window of diagnostics
+vim.keymap.set('n', '<leader>ct', '<cmd>TroubleToggle<CR>')
 --}}}
 -- Options {{{
 vim.opt.number = true
 vim.opt.expandtab = true
 vim.opt.shiftwidth = 4
 vim.opt.hlsearch = false
+
 --}}}
 -- }}}
 -- Triggers and autocommands {{{
