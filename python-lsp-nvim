@@ -183,8 +183,21 @@ function copy_current_selection_as_github()
 end
 
 function split_line_into_paragraph()
-    local line = get_line(get_position())
-    -- TODO implement this
+    local line_number = get_position()[1]
+    local indent, line = unpack(split_indent_from_line(get_line(line_number)))
+    while #line > 100 - #indent do
+        cutoff = 100 - #indent
+        for i = 100 - #indent, 0, -1 do
+            if string.sub(line, i,i) == ' ' then
+                cutoff = i
+                break
+            end
+        end
+        insert_line(line_number, indent .. string.sub(line, 1, cutoff-1))
+        line_number = line_number + 1
+        line = string.sub(line, cutoff+1)
+    end
+    set_line(line_number, indent .. line)
 end
 
 function toggle_spell_check_highlighting()
