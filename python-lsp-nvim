@@ -24,6 +24,8 @@ require('packer').startup(function(use)
       'folke/trouble.nvim',
       requires = { "nvim-tree/nvim-web-devicons" },
     }
+    use 'lewis6991/gitsigns.nvim'
+    use "neanias/everforest-nvim"
 end)
 -- }}}
 -- LSP setup {{{
@@ -34,7 +36,10 @@ require'lspconfig'.terraformls.setup{}
 -- -- for rust
 -- this one also requires the rust-analyzer to be installed (pacman -S rust-analyzer)
 require'lspconfig'.rust_analyzer.setup{}
--- --
+-- -- for vue
+require'lspconfig'.vuels.setup{}
+-- -- for typescript
+require'lspconfig'.tsserver.setup{}
 
 -- Use LspAttach autocommand to only map the following keys
 -- after the language server attaches to the current buffer
@@ -163,6 +168,14 @@ function copy_current_file_name()
     set_clipboard(get_current_filename())
 end
 
+function open_filename_under_cursor()
+    local lineno, position = unpack(get_position())
+    local text = get_line(lineno)
+    local before = string.sub(text, 1,position-1)
+    local after = string.sub(text, position)
+    vim.cmd('edit ' .. string.match(before, '[%a/_%d%.]*$') .. string.match(after, '^[%a/_%d%.]*'))
+end
+
 function exit_visual_mode()
     local esc = vim.api.nvim_replace_termcodes('<esc>', true, false, true)
     vim.api.nvim_feedkeys(esc, 'x', false)
@@ -257,7 +270,7 @@ end
 
 -- }}}
 -- General setup: {{{
--- Key mappings {{{
+--Key mappings {{{
 vim.g.mapleader = ','
 vim.keymap.set('i', 'kj', '<ESC>')
 -- quitting or switching buffers / tabs
@@ -295,6 +308,8 @@ vim.keymap.set('n', 'ss', '"+dd')
 vim.keymap.set('n', 'yy', '"+yy')
 -- copy the current filename
 vim.keymap.set('n', '<leader>kf', copy_current_file_name)
+-- copy the filename under the cursor
+vim.keymap.set('n', '<leader>of', open_filename_under_cursor)
 -- Add an import
 vim.keymap.set('n', '<leader>c#', add_import_to_current_file)
 -- Comment out the selected lines
@@ -315,8 +330,10 @@ vim.opt.number = true
 vim.opt.expandtab = true
 vim.opt.shiftwidth = 4
 vim.opt.hlsearch = false
-
 --}}}
+-- Colour scheme {{{
+require("everforest").load()
+-- }}}
 -- }}}
 -- Triggers and autocommands {{{
 vim.api.nvim_create_autocmd("BufWritePre", {
@@ -333,16 +350,52 @@ vim.g.loaded_netrwPlugin = 1
 vim.opt.termguicolors = true
 require("nvim-tree").setup()
 -- }}}
--- Setup telescope (fuzzy finding)
+-- Setup telescope (fuzzy finding) {{{
 local builtin = require('telescope.builtin')
 vim.keymap.set('n', '<C-p>', builtin.find_files, {})
 vim.keymap.set('n', '<leader>gg', builtin.live_grep, {})
 -- Not sure what these do, or if we needthem
 --vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
 --vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
--- Black formatter
+-- }}}
+-- Black formatter {{{
 vim.g.black_linelength = 120
 vim.g.python3_host_prog = "$HOME/pythonvenv/bin/python"
+-- }}}
+-- gitsigns (git integration) {{{
+require('gitsigns').setup{
+  on_attach = function(bufnr)
+    local gitsigns = require('gitsigns')
+
+    local function map(mode, l, r, opts)
+      opts = opts or {}
+      opts.buffer = bufnr
+      vim.keymap.set(mode, l, r, opts)
+    end
+
+    -- Navigation <leader>gn / <leader>gp go to next / previous hunk
+    map('n', '<leader>gn', function()
+      gitsigns.nav_hunk('next')
+    end)
+
+    map('n', '<leader>gp', function()
+      gitsigns.nav_hunk('prev')
+    end)
+
+    -- Actions
+    map('n', '<leader>ga', gitsigns.stage_hunk) -- git add
+    map('n', '<leader>gr', gitsigns.reset_hunk) -- git reset
+    map('v', '<leader>ga', function() gitsigns.stage_hunk {vim.fn.line('.'), vim.fn.line('v')} end)
+    map('v', '<leader>gr', function() gitsigns.reset_hunk {vim.fn.line('.'), vim.fn.line('v')} end)
+    map('n', '<leader>gb', function() gitsigns.blame_line{full=true} end)
+    map('n', '<leader>gd', gitsigns.diffthis)
+
+    -- Text object
+    -- I think this is "select in hunk". Might enable this in the future
+    -- map({'o', 'x'}, 'ih', ':<C-U>Gitsigns select_hunk<CR>')
+  end
+}
+-- }}}
 -- }}}
 EOF
 
