@@ -352,6 +352,13 @@ require("nvim-tree").setup()
 -- }}}
 -- Setup telescope (fuzzy finding) {{{
 local builtin = require('telescope.builtin')
+require('telescope').setup {
+  defaults = {
+    file_ignore_patterns = {
+        "node_modules/.*",
+        ".git/.*"
+    }
+}}
 vim.keymap.set('n', '<C-p>', builtin.find_files, {})
 vim.keymap.set('n', '<leader>gg', builtin.live_grep, {})
 -- Not sure what these do, or if we needthem
