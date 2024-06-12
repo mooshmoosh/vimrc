@@ -26,6 +26,8 @@ require('packer').startup(function(use)
     }
     use 'lewis6991/gitsigns.nvim'
     use "neanias/everforest-nvim"
+    use "mfussenegger/nvim-dap"
+    use 'mfussenegger/nvim-dap-python'
 end)
 -- }}}
 -- LSP setup {{{
@@ -324,6 +326,23 @@ vim.keymap.set('n', '<leader>le', split_line_into_paragraph)
 vim.keymap.set('n', '<leader>ss', toggle_spell_check_highlighting)
 -- Toggle Opening the trouble window of diagnostics
 vim.keymap.set('n', '<leader>ct', '<cmd>TroubleToggle<CR>')
+-- keymaps for debugging
+-- <leader>dtm -> debugger test method, run the pytest test under the cursor
+vim.keymap.set('n', '<leader>dtm', function() require('dap-python').test_method() end)
+-- <leader>dc -> continue
+vim.keymap.set('n', '<leader>dc', function() require('dap').continue() end)
+-- <leader>ds -> step over
+vim.keymap.set('n', '<leader>ds', function() require('dap').step_over() end)
+-- <leader>dS -> step into
+vim.keymap.set('n', '<leader>dS', function() require('dap').step_into() end)
+-- step out, need to think of a good mnemonic for this one
+--vim.keymap.set('n', '<F12>', function() require('dap').step_out() end)
+-- toggle breakpoint
+vim.keymap.set('n', '<Leader>db', function() require('dap').toggle_breakpoint() end)
+-- open debug repl
+vim.keymap.set('n', '<Leader>dr', function() require('dap').repl.open() end)
+-- <leader>de -> evaluate symbol under the cursor
+vim.keymap.set('n', '<Leader>de', function() require('dap.ui.widgets').preview() end)
 --}}}
 -- Options {{{
 vim.opt.number = true
@@ -402,6 +421,12 @@ require('gitsigns').setup{
     -- map({'o', 'x'}, 'ih', ':<C-U>Gitsigns select_hunk<CR>')
   end
 }
+-- }}}
+-- debugger setup {{{
+local dap_python = require("dap-python")
+dap_python.setup("python")
+dap_python.test_runner = 'pytest'
+
 -- }}}
 -- }}}
 EOF
