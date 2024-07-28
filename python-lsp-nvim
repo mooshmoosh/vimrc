@@ -19,7 +19,7 @@ require('packer').startup(function(use)
       'nvim-telescope/telescope.nvim', tag = '0.1.4',
       requires = { {'nvim-lua/plenary.nvim'} }
     }
-    use 'psf/black'
+    -- use 'psf/black'
     use {
       'folke/trouble.nvim',
       requires = { "nvim-tree/nvim-web-devicons" },
@@ -28,6 +28,7 @@ require('packer').startup(function(use)
     use "neanias/everforest-nvim"
     use "mfussenegger/nvim-dap"
     use 'mfussenegger/nvim-dap-python'
+    use "elentok/format-on-save.nvim"
 end)
 -- }}}
 -- LSP setup {{{
@@ -42,6 +43,8 @@ require'lspconfig'.rust_analyzer.setup{}
 require'lspconfig'.vuels.setup{}
 -- -- for typescript
 require'lspconfig'.tsserver.setup{}
+-- -- for C (clangd)
+require'lspconfig'.clangd.setup{}
 
 -- Use LspAttach autocommand to only map the following keys
 -- after the language server attaches to the current buffer
@@ -399,10 +402,11 @@ require("everforest").load()
 -- }}}
 -- }}}
 -- Triggers and autocommands {{{
-vim.api.nvim_create_autocmd("BufWritePre", {
-    pattern = "*.py",
-    command = ":Black",
-})
+--
+--vim.api.nvim_create_autocmd("BufWritePre", {
+--    pattern = "*.py",
+--    command = ":Black",
+--})
 -- }}}
 -- Plugin setup {{{
 -- Setup nvim tree {{{
@@ -429,7 +433,7 @@ vim.keymap.set('n', '<leader>gg', builtin.live_grep, {})
 --vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
 -- }}}
 -- Black formatter {{{
-vim.g.black_linelength = 120
+-- vim.g.black_linelength = 120
 vim.g.python3_host_prog = "$HOME/pythonvenv/bin/python"
 -- }}}
 -- gitsigns (git integration) {{{
@@ -470,7 +474,24 @@ require('gitsigns').setup{
 local dap_python = require("dap-python")
 dap_python.setup("python")
 dap_python.test_runner = 'pytest'
-
+-- }}}
+-- Formatters setup {{{
+local format_on_save = require("format-on-save")
+local formatters = require("format-on-save.formatters")
+format_on_save.setup({
+  exclude_path_patterns = {
+    "/node_modules/",
+  },
+  formatter_by_ft = {
+    rust = formatters.lsp,
+    terraform = formatters.lsp,
+    typescript = formatters.prettierd,
+    python = formatters.shell({cmd = {vim.g.python3_host_prog, "-m", "black", "--line-length", "120", "--stdin-filename", "%", "--quiet", "-"}}),
+    json = formatters.shell({cmd = {"jq", "--monochrome-output"}}),
+    cpp = formatters.lsp,
+    c = formatters.lsp
+  }
+})
 -- }}}
 -- }}}
 EOF

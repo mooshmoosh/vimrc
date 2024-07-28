@@ -68,6 +68,7 @@ then
     PATH=$PATH:/home/will/bin
     PATH=$PATH:/home/will/scripts
     PATH=$PATH:/home/will/.local/bin
+    PATH=$PATH:/home/will/node_modules/bin
     HISTSIZE=-1
     CLIPBOARD_COMMAND='xclip -in -selection \"clipboard\"'
     GITHUB_BASE_URL='https://github.com/mooshmoosh/'
