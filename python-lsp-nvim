@@ -43,7 +43,7 @@ require'lspconfig'.rust_analyzer.setup{}
 -- -- for vue
 require'lspconfig'.vuels.setup{}
 -- -- for typescript
-require'lspconfig'.tsserver.setup{}
+require'lspconfig'.ts_ls.setup{}
 -- -- for C (clangd)
 require'lspconfig'.clangd.setup{}
 
@@ -371,7 +371,7 @@ vim.keymap.set('n', '<leader>le', split_line_into_paragraph)
 -- Toggle spell check
 vim.keymap.set('n', '<leader>ss', toggle_spell_check_highlighting)
 -- Toggle Opening the trouble window of diagnostics
-vim.keymap.set('n', '<leader>ct', '<cmd>TroubleToggle<CR>')
+vim.keymap.set('n', '<leader>ct', '<cmd>Trouble diagnostics toggle<cr>')
 -- keymaps for debugging
 -- <leader>dtm -> debugger test method, run the pytest test under the cursor
 vim.keymap.set('n', '<leader>dtm', function() require('dap-python').test_method() end)
@@ -494,6 +494,8 @@ format_on_save.setup({
   }
 })
 -- }}}
+-- Trouble setup {{{
+require("trouble").setup({})
 -- }}}
 EOF
 
