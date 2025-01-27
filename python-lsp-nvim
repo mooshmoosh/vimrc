@@ -29,6 +29,7 @@ require('packer').startup(function(use)
     use "mfussenegger/nvim-dap"
     use 'mfussenegger/nvim-dap-python'
     use "elentok/format-on-save.nvim"
+    use "atiladefreitas/dooing"
 end)
 -- }}}
 -- LSP setup {{{
