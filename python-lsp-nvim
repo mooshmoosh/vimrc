@@ -206,7 +206,7 @@ function open_filename_under_cursor()
     local text = get_line(lineno)
     local before = string.sub(text, 1,position-1)
     local after = string.sub(text, position)
-    vim.cmd('edit ' .. string.match(before, '[%a/_%d%.]*$') .. string.match(after, '^[%a/_%d%.]*'))
+    vim.cmd('edit ' .. string.match(before, '[%a/_%-%d%.]*$') .. string.match(after, '^[%a/_%d%.]*'))
 end
 
 function exit_visual_mode()
