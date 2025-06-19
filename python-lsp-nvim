@@ -4,6 +4,13 @@ export XDG_CONFIG_HOME=$HOME/extra_configs/python-lsp-nvim/config
 export XDG_DATA_HOME=$HOME/extra_configs/python-lsp-nvim/data
 mkdir -p $XDG_CONFIG_HOME/nvim/
 
+
+uname -a | grep 'android' >> /dev/null 
+if [ "$?" == "0" ]
+then
+    export ENVIRONMENT_COMPUTER="PHONE"
+fi
+
 cat > $XDG_CONFIG_HOME/nvim/init.lua <<EOF
 -- packer setup {{{
 require('packer').startup(function(use)
@@ -483,6 +490,7 @@ dap_python.test_runner = 'pytest'
 -- Formatters setup {{{
 local format_on_save = require("format-on-save")
 local formatters = require("format-on-save.formatters")
+local python_linelength = $( [ $ENVIRONMENT_COMPUTER == "PHONE" ] && echo 70 || echo 120 )
 format_on_save.setup({
   exclude_path_patterns = {
     "/node_modules/",
@@ -491,7 +499,7 @@ format_on_save.setup({
     rust = formatters.lsp,
     terraform = formatters.lsp,
     typescript = formatters.prettierd,
-    python = formatters.shell({cmd = {vim.g.python3_host_prog, "-m", "black", "--line-length", "120", "--stdin-filename", "%", "--quiet", "-"}}),
+    python = formatters.shell({cmd = {vim.g.python3_host_prog, "-m", "black", "--line-length", python_linelength, "--stdin-filename", "%", "--quiet", "-"}}),
     json = formatters.shell({cmd = {"jq", "--monochrome-output"}}),
     cpp = formatters.lsp,
     c = formatters.lsp
